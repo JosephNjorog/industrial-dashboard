@@ -3,7 +3,7 @@ import { getMaintenanceProgress } from '../utils/helpers';
 
 import Gauge from './Gauge';
 
-export default function MachineCard({ machine, title, stats, history = [], onControl, isLocked, onViewDetails, openModal }) {
+export default function MachineCard({ machine, title, stats, history = [], onControl, isLocked, onViewDetails, openModal, canOperate = true }) {
   const isActive = stats.state === 'ON';
   const isAlert = stats.status === 'Critical' || stats.status === 'Warning';
 
@@ -17,6 +17,8 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
       flexDirection: 'column',
       gap: '4px',
       minWidth: '260px',
+      minHeight: '400px',
+      boxShadow: 'var(--card-shadow)',
       flex: '1'
     }}>
       {/* ─── HEADER ─── */}
@@ -67,10 +69,10 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
         marginTop: '8px',
         marginBottom: '12px',
         padding: '16px 8px',
-        background: 'rgba(0,0,0,0.5)',
+        background: 'var(--instrument-bg)',
         borderRadius: '12px',
         border: '1px solid var(--border)',
-        boxShadow: 'inset 0 4px 20px rgba(0,0,0,0.8)'
+        boxShadow: 'var(--instrument-shadow)'
       }}>
         <Gauge 
           value={stats.isSensorError ? 0 : Number(stats.temp.toFixed(0))} 
@@ -112,17 +114,18 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
       </div>
 
       {/* ─── MINI-CARDS GRID ─── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', marginBottom: '4px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '8px' }}>
         {/* Diagnostic Status */}
         <div style={{ 
           background: (stats.bearing && stats.bearing !== 'NORMAL') ? 'rgba(255, 0, 85, 0.15)' : 'var(--badge-bg)', 
-          padding: '8px 4px', 
+          padding: '16px 8px', 
           borderRadius: '8px',
           border: `1px solid ${(stats.bearing && stats.bearing !== 'NORMAL') ? 'var(--danger)' : 'var(--border)'}`,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center'
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
+          minHeight: '80px'
         }}>
-          <span style={{ fontSize: '0.45rem', color: 'var(--text-muted)', fontWeight: 800, marginBottom: '2px' }}>DIAGNOSTIC</span>
-          <span style={{ fontSize: '0.65rem', fontWeight: 900, color: (stats.bearing && stats.bearing !== 'NORMAL') ? 'var(--danger)' : 'var(--success)' }}>
+          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>DIAGNOSTIC</span>
+          <span style={{ fontSize: '1rem', fontWeight: 900, color: (stats.bearing && stats.bearing !== 'NORMAL') ? 'var(--danger)' : 'var(--success)', textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
             {stats.bearing || 'NORMAL'}
           </span>
         </div>
@@ -130,13 +133,14 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
         {/* Est. Failure */}
         <div style={{ 
           background: 'var(--badge-bg)', 
-          padding: '8px 4px', 
+          padding: '16px 8px', 
           borderRadius: '8px',
           border: '1px solid var(--border)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center'
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
+          minHeight: '80px'
         }}>
-          <span style={{ fontSize: '0.45rem', color: 'var(--text-muted)', fontWeight: 800, marginBottom: '2px' }}>EST. FAILURE</span>
-          <span style={{ fontSize: '0.65rem', fontWeight: 900, color: stats.ttfHours < 100 ? 'var(--danger)' : 'var(--success)' }}>
+          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>EST. FAILURE</span>
+          <span style={{ fontSize: '1rem', fontWeight: 900, color: stats.ttfHours < 100 ? 'var(--danger)' : 'var(--success)', textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
             {stats.ttfHours > 900 ? 'STABLE' : `IN ${stats.ttfHours.toFixed(0)}h`}
           </span>
         </div>
@@ -144,14 +148,15 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
         {/* Total Energy */}
         <div style={{ 
           background: 'rgba(0, 255, 136, 0.05)', 
-          padding: '8px 4px', 
+          padding: '16px 8px', 
           borderRadius: '8px',
           border: '1px solid rgba(0, 255, 136, 0.2)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center'
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
+          minHeight: '80px'
         }}>
-          <span style={{ fontSize: '0.45rem', color: 'var(--success)', fontWeight: 800, marginBottom: '2px' }}>ENERGY</span>
-          <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--foreground)' }}>
-            {stats.energy.toFixed(2)}<span style={{ fontSize: '0.45rem', opacity: 0.7 }}>kWh</span>
+          <span style={{ fontSize: '0.65rem', color: 'var(--success)', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ENERGY</span>
+          <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--foreground)', textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+            {stats.energy.toFixed(2)}<span style={{ fontSize: '0.7rem', opacity: 0.7, marginLeft: '2px' }}>kWh</span>
           </span>
         </div>
       </div>
@@ -166,23 +171,25 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
             ANALYTICS
           </button>
         </div>
-        <button 
-          onClick={() => onControl(machine, isActive ? 'OFF' : 'ON')}
-          style={{ 
-            padding: '4px 12px', 
-            borderRadius: '6px', 
-            background: stats.pendingCmdId ? 'var(--badge-bg)' : (isActive ? 'rgba(255, 45, 85, 0.2)' : 'rgba(0, 255, 136, 0.2)'), 
-            border: `1px solid ${stats.pendingCmdId ? 'var(--border)' : (isActive ? 'var(--danger)' : 'var(--success)')}`, 
-            color: stats.pendingCmdId ? 'var(--text-muted)' : (isActive ? 'var(--danger)' : 'var(--success)'), 
-            fontSize: '0.6rem', 
-            fontWeight: 900, 
-            cursor: stats.pendingCmdId ? 'wait' : 'pointer',
-            opacity: isLocked ? 0.7 : 1,
-            animation: stats.pendingCmdId ? 'pulse 1.5s infinite' : 'none'
-          }}
-        >
-          {stats.pendingCmdId ? (isActive ? 'STOPPING...' : 'STARTING...') : (isLocked ? '🔒' : isActive ? 'STOP' : 'START')}
-        </button>
+        {canOperate && (
+          <button 
+            onClick={() => onControl(machine, isActive ? 'OFF' : 'ON')}
+            style={{ 
+              padding: '4px 12px', 
+              borderRadius: '6px', 
+              background: stats.pendingCmdId ? 'var(--badge-bg)' : (isActive ? 'rgba(255, 45, 85, 0.2)' : 'rgba(0, 255, 136, 0.2)'), 
+              border: `1px solid ${stats.pendingCmdId ? 'var(--border)' : (isActive ? 'var(--danger)' : 'var(--success)')}`, 
+              color: stats.pendingCmdId ? 'var(--text-muted)' : (isActive ? 'var(--danger)' : 'var(--success)'), 
+              fontSize: '0.6rem', 
+              fontWeight: 900, 
+              cursor: stats.pendingCmdId ? 'wait' : 'pointer',
+              opacity: isLocked ? 0.7 : 1,
+              animation: stats.pendingCmdId ? 'pulse 1.5s infinite' : 'none'
+            }}
+          >
+            {stats.pendingCmdId ? (isActive ? 'STOPPING...' : 'STARTING...') : (isLocked ? '🔒' : isActive ? 'STOP' : 'START')}
+          </button>
+        )}
       </div>
     </div>
   );

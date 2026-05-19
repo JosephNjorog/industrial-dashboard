@@ -82,7 +82,7 @@ const pageStyles = {
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))',
     gap: '12px',
   },
   notifications: {
@@ -394,6 +394,27 @@ export default function Dashboard() {
       setUsername(user);
       setUserRole(localStorage.getItem('userRole'));
       setCanOperate(localStorage.getItem('canOperate') === 'true');
+      
+      // Poll for user permission changes
+      const authInterval = setInterval(() => {
+        fetch('/api/users')
+          .then(res => res.json())
+          .then(users => {
+            if (Array.isArray(users)) {
+              const currentUser = users.find(u => u.username === user);
+              if (currentUser && currentUser.role !== 'admin') {
+                const operate = currentUser.can_operate;
+                if (operate !== (localStorage.getItem('canOperate') === 'true')) {
+                  localStorage.setItem('canOperate', operate ? 'true' : 'false');
+                  setCanOperate(operate);
+                }
+              }
+            }
+          })
+          .catch(() => {});
+      }, 2000);
+
+      return () => clearInterval(authInterval);
     }
   }, [router]);
 
@@ -820,22 +841,24 @@ export default function Dashboard() {
 
             <DateTimeCard />
             
-            <button
-              onClick={toggleLock}
-              style={{
-                background: isLocked ? 'var(--danger)' : 'var(--success)',
-                border: 'none',
-                borderRadius: '6px',
-                width: '32px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              <span style={{ fontSize: '1rem' }}>{isLocked ? '🔒' : '🔓'}</span>
-            </button>
+            {(userRole === 'admin' || canOperate) && (
+              <button
+                onClick={toggleLock}
+                style={{
+                  background: isLocked ? 'var(--danger)' : 'var(--success)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <span style={{ fontSize: '1rem' }}>{isLocked ? '🔒' : '🔓'}</span>
+              </button>
+            )}
             <ThemeToggle />
             
             <div className="auth-panel">
@@ -935,7 +958,7 @@ export default function Dashboard() {
             {/* KPI Overview Section */}
             <div style={{ 
               display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', 
               gap: '16px', 
               marginBottom: '24px' 
             }}>
@@ -975,23 +998,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="glass-panel" style={{ 
-                padding: '12px 16px', 
-                borderRadius: '12px', 
-                background: 'var(--card-gradient)',
-                border: '1px solid var(--border)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '4px'
-              }}>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Avg Temperature</span>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                  <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--danger)' }}>
-                    {(Object.values(machineStats).reduce((sum, m) => sum + (m.temp || 0), 0) / machineNames.length).toFixed(1)}
-                  </span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>°C</span>
-                </div>
-              </div>
+
 
               <div className="glass-panel" style={{ 
                 padding: '12px 16px', 
@@ -1025,6 +1032,7 @@ export default function Dashboard() {
                 isLocked={isLocked}
                 onViewDetails={(m) => setAnalyticsMachine(m)}
                 settings={settings}
+                canOperate={userRole === 'admin' || canOperate}
               />
             ))}
             </div>

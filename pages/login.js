@@ -8,6 +8,8 @@ export default function Login() {
   const [error, setError] = useState('');
   const router = useRouter();
 
+  const [isLoading, setIsLoading] = useState(false);
+
   useEffect(() => {
     // If already logged in, redirect to dashboard
     const user = localStorage.getItem('username');
@@ -23,6 +25,7 @@ export default function Login() {
       return;
     }
     
+    setIsLoading(true);
     try {
       const res = await fetch('/api/auth', {
         method: 'POST',
@@ -39,9 +42,11 @@ export default function Login() {
         router.push('/');
       } else {
         setError(data.error || 'Authentication failed');
+        setIsLoading(false);
       }
     } catch (err) {
       setError('Network error. Please try again.');
+      setIsLoading(false);
     }
   };
 
@@ -142,25 +147,27 @@ export default function Login() {
 
           <button
             type="submit"
+            disabled={isLoading}
             style={{
               marginTop: '12px',
               width: '100%',
               padding: '14px',
               borderRadius: '10px',
               border: 'none',
-              background: 'var(--accent)',
+              background: isLoading ? 'var(--text-muted)' : 'var(--accent)',
               color: '#000',
               fontSize: '0.95rem',
               fontWeight: 800,
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px var(--accent-glow)',
-              transition: 'transform 0.1s ease, box-shadow 0.2s ease'
+              cursor: isLoading ? 'wait' : 'pointer',
+              boxShadow: isLoading ? 'none' : '0 4px 12px var(--accent-glow)',
+              transition: 'transform 0.1s ease, box-shadow 0.2s ease',
+              animation: isLoading ? 'pulse 1.5s infinite' : 'none'
             }}
-            onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
-            onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
-            onMouseDown={(e) => e.target.style.transform = 'translateY(1px)'}
+            onMouseOver={(e) => !isLoading && (e.target.style.transform = 'translateY(-2px)')}
+            onMouseOut={(e) => !isLoading && (e.target.style.transform = 'translateY(0)')}
+            onMouseDown={(e) => !isLoading && (e.target.style.transform = 'translateY(1px)')}
           >
-            ACCESS COMMAND CENTER
+            {isLoading ? 'AUTHENTICATING...' : 'ACCESS COMMAND CENTER'}
           </button>
         </form>
       </div>

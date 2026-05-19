@@ -14,6 +14,9 @@
   --card-gradient: linear-gradient(160deg, rgba(16,21,32,0.95) 0%, rgba(5,8,12,0.95) 100%);
   --insight-card: #0d121c;
   --insight-item: #151b29;
+  --card-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  --instrument-bg: rgba(0,0,0,0.5);
+  --instrument-shadow: inset 0 4px 20px rgba(0,0,0,0.8);
 }
 
 body.light-theme {
@@ -32,6 +35,9 @@ body.light-theme {
   --card-gradient: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   --insight-card: #ffffff;
   --insight-item: #f1f5f9;
+  --card-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  --instrument-bg: #f1f5f9;
+  --instrument-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
 }
 
 @keyframes pulse {

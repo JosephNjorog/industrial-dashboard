@@ -1,4 +1,4 @@
-import { getUsers, addUser, grantControl } from '../../lib/db';
+import { getUsers, addUser, grantControl, deleteUser } from '../../lib/db';
 
 export default async function handler(req, res) {
   try {
@@ -36,8 +36,20 @@ export default async function handler(req, res) {
           return res.status(404).json({ error: error.message });
         }
 
+      case 'DELETE':
+        const { username: userToDelete } = req.body;
+        if (!userToDelete) {
+          return res.status(400).json({ error: 'Username is required to delete.' });
+        }
+        try {
+          const remainingUsers = await deleteUser(userToDelete);
+          return res.status(200).json(remainingUsers);
+        } catch (error) {
+          return res.status(400).json({ error: error.message });
+        }
+
       default:
-        res.setHeader('Allow', ['GET', 'POST', 'PUT']);
+        res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
         return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
   } catch (error) {
