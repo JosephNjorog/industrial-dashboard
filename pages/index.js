@@ -566,8 +566,10 @@ export default function Dashboard() {
 
         setMachineStats((previousState) => {
           const prevMachine = previousState[machine];
-          // Preserve current state if the new payload doesn't provide it
-          const finalState = normalized.state !== undefined ? normalized.state : prevMachine.state;
+          // If we are waiting for an ACK, preserve the current state to prevent telemetry flickering
+          const finalState = prevMachine.pendingCmdId 
+            ? prevMachine.state 
+            : (normalized.state !== undefined ? normalized.state : prevMachine.state);
           const finalMaintProgress = normalized.maintenanceProgress !== null ? normalized.maintenanceProgress : prevMachine.maintenanceProgress;
           const finalMaintDue = normalized.maintenance_due !== null ? normalized.maintenance_due : prevMachine.maintenance_due;
           
@@ -587,11 +589,6 @@ export default function Dashboard() {
 
           // 🧠 Run Diagnostic Engine
           const diagnostic = runDiagnostics(machine, normalized, machineHistory[machine] || [], settings.thresholds);
-
-          // If we are waiting for an ACK, preserve the current state to prevent telemetry flickering
-          const finalState = prevMachine.pendingCmdId 
-            ? prevMachine.state 
-            : (normalized.state !== undefined ? normalized.state : prevMachine.state);
 
           return {
             ...previousState,
