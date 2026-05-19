@@ -39,7 +39,7 @@ export default function LogoIcon({ size = 48, color = '#4ce7ff' }) {
       {/* Isometric 3D Cube at center */}
       <g transform="translate(32, 28) scale(0.8)">
         {/* Top */}
-        <path d="M0 -12 L12 -6 L0 0 L-12 -6 Z" fill="#fff" opacity="0.9" />
+        <path d="M0 -12 L12 -6 L0 0 L-12 -6 Z" fill="var(--foreground)" opacity="0.9" />
         {/* Left */}
         <path d="M-12 -6 L0 0 L0 12 L-12 6 Z" fill={color} opacity="0.6" />
         {/* Right */}
@@ -49,7 +49,7 @@ export default function LogoIcon({ size = 48, color = '#4ce7ff' }) {
       {/* Power Ring */}
       <path
         d="M20 32C20 38 32 42 32 42C32 42 44 38 44 32"
-        stroke="#fff"
+        stroke="var(--foreground)"
         strokeWidth="2"
         strokeLinecap="round"
         opacity="0.5"

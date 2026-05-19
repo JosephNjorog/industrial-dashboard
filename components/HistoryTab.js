@@ -24,7 +24,7 @@ const styles = {
     borderWidth: '1px',
     borderStyle: 'solid',
     borderColor: 'var(--border)',
-    background: 'rgba(255, 255, 255, 0.05)',
+    background: 'var(--badge-bg)',
     color: 'var(--text-muted)',
     fontSize: '0.75rem',
     fontWeight: 600,
@@ -95,7 +95,7 @@ const styles = {
     fontSize: '0.9rem',
     fontWeight: 700,
     margin: '0 0 4px',
-    color: '#fff',
+    color: 'var(--foreground)',
   },
   entryBody: {
     fontSize: '0.8rem',
@@ -115,7 +115,7 @@ const styles = {
 
 const EventBadge = ({ type }) => {
   let color = 'var(--text-muted)';
-  let bg = 'rgba(255, 255, 255, 0.1)';
+  let bg = 'var(--badge-bg)';
   
   if (type.includes('START') || type.includes('ON') || type.includes('CONFIRMED')) {
     color = 'var(--success)';

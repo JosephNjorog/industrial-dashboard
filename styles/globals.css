@@ -1,19 +1,19 @@
 :root {
-  --background: #03060a;
-  --surface: #0a0f18;
-  --surface-soft: #0e1420;
-  --foreground: #f0f6fc;
-  --text-muted: #91a3b8;
-  --border: rgba(255, 255, 255, 0.1);
-  --accent: #00f2ff;
-  --accent-glow: rgba(0, 242, 255, 0.35);
-  --danger: #ff2d55;
+  --background: #020408;
+  --surface: #0a0d14;
+  --surface-soft: #111622;
+  --foreground: #f4f7fa;
+  --text-muted: #8a9bb2;
+  --border: rgba(255, 255, 255, 0.08);
+  --accent: #00f0ff;
+  --accent-glow: rgba(0, 240, 255, 0.5);
+  --danger: #ff0055;
   --success: #00ff88;
-  --warning: #ffb400;
-  --badge-bg: rgba(255, 255, 255, 0.05);
-  --card-gradient: linear-gradient(180deg, #0a0f18 0%, #03060a 100%);
-  --insight-card: #0c121e;
-  --insight-item: #141c2d;
+  --warning: #ffcc00;
+  --badge-bg: rgba(255, 255, 255, 0.08);
+  --card-gradient: linear-gradient(160deg, rgba(16,21,32,0.95) 0%, rgba(5,8,12,0.95) 100%);
+  --insight-card: #0d121c;
+  --insight-item: #151b29;
 }
 
 body.light-theme {
@@ -120,3 +120,61 @@ a {
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
 }
+
+/* Responsive Utilities */
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.auth-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 8px;
+  border-left: 1px solid var(--border);
+  padding-left: 16px;
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .auth-panel {
+    margin-left: 0;
+    border-left: none;
+    padding-left: 0;
+    width: 100%;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+}
+

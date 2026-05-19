@@ -40,24 +40,24 @@ const AnalyticsModal = ({ isOpen, onClose, machine, title, history, logs = [] })
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          background: 'rgba(255,255,255,0.02)'
+          background: 'var(--badge-bg)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <MachineIcon type={machine} size={32} color="var(--accent)" />
             <div>
-              <h2 style={{ margin: 0, fontSize: '1.5rem', color: '#fff' }}>{title} Analytics</h2>
+              <h2 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--foreground)' }}>{title} Analytics</h2>
               <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Historical Performance Data</p>
             </div>
           </div>
           <button 
             onClick={onClose}
             style={{
-              background: 'rgba(255,255,255,0.05)',
+              background: 'var(--badge-bg)',
               border: '1px solid var(--border)',
               borderRadius: '50%',
               width: '40px',
               height: '40px',
-              color: '#fff',
+              color: 'var(--foreground)',
               fontSize: '1.5rem',
               cursor: 'pointer',
               display: 'flex',
@@ -93,7 +93,7 @@ const AnalyticsModal = ({ isOpen, onClose, machine, title, history, logs = [] })
           {/* Command Audit Trail */}
           <div style={{ 
             gridColumn: '1 / -1', 
-            background: 'rgba(255,255,255,0.02)', 
+            background: 'var(--badge-bg)', 
             padding: '20px', 
             borderRadius: '16px', 
             border: '1px solid var(--border)' 

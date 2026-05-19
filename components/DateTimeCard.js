@@ -85,7 +85,7 @@ export default function DateTimeCard() {
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={{ 
           fontSize: '0.75rem', 
-          color: '#fff', 
+          color: 'var(--foreground)', 
           fontWeight: 700,
           textTransform: 'uppercase'
         }}>

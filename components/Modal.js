@@ -115,8 +115,8 @@ const Modal = ({ isOpen, title, message, onConfirm, onCancel, type = 'alert' }) 
                 padding: '12px',
                 borderRadius: '10px',
                 border: '1px solid var(--border)',
-                background: 'rgba(0,0,0,0.2)',
-                color: '#fff',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-main)',
                 fontSize: '1rem',
                 textAlign: 'center',
                 letterSpacing: '0.5em'

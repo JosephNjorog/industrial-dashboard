@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useRouter } from 'next/router';
 import MachineCard from '../components/MachineCard';
 import MachineIcon from '../components/MachineIcon';
 import LogoIcon from '../components/LogoIcon';
@@ -80,8 +81,8 @@ const pageStyles = {
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-    gap: '8px',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+    gap: '12px',
   },
   notifications: {
     position: 'fixed',
@@ -206,7 +207,7 @@ const pageStyles = {
   },
   notificationControl: {
     background: 'var(--accent)',
-    color: '#fff',
+    color: 'var(--background)',
   },
   notificationData: {
     background: 'var(--success)',
@@ -214,11 +215,14 @@ const pageStyles = {
   },
   notificationError: {
     background: 'var(--danger)',
-    color: '#fff',
+    color: 'var(--background)',
   },
 };
 
 export default function Dashboard() {
+  const router = useRouter();
+  const [username, setUsername] = useState(null);
+
   const [machineStats, setMachineStats] = useState(() =>
     machineNames.reduce((accumulator, machine) => {
       accumulator[machine] = buildInitialMachineState();
@@ -378,7 +382,15 @@ export default function Dashboard() {
         if (data.thresholds) setSettings(data);
       })
       .catch(err => console.error('Failed to load settings from DB', err));
-  }, []);
+
+    // Auth guard
+    const user = localStorage.getItem('username');
+    if (!user) {
+      router.push('/login');
+    } else {
+      setUsername(user);
+    }
+  }, [router]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -650,7 +662,7 @@ export default function Dashboard() {
 
 
 
-  const handleControl = (machine, state) => {
+  const handleControl = async (machine, state) => {
     if (espStatus === 'OFFLINE') {
       openModal({
         title: 'Hardware Offline',
@@ -663,6 +675,30 @@ export default function Dashboard() {
 
     if (isLocked) {
       toggleLock();
+      return;
+    }
+
+    // Try to acquire the machine lock for control
+    try {
+      const res = await fetch('/api/lock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ machine, user: username })
+      });
+      
+      const lockData = await res.json();
+      
+      if (!res.ok) {
+        openModal({
+          title: 'Machine Locked',
+          message: `Cannot change ${machineTitles[machine]} state. It is currently locked by: ${lockData.lockedBy || 'Another User'}.`,
+          type: 'alert'
+        });
+        addNotification(`ACCESS DENIED: ${machineTitles[machine]} is locked by ${lockData.lockedBy}`, 'error');
+        return;
+      }
+    } catch (error) {
+      addNotification(`Lock Check Failed: ${error.message}`, 'error');
       return;
     }
 
@@ -683,7 +719,7 @@ export default function Dashboard() {
     addNotification(`SENT: ${state} command to ${machineTitle} (ID: ${cmdId})`, 'control');
   };
 
-  if (!mounted) {
+  if (!mounted || !username) {
     return (
       <div style={pageStyles.page}>
         <div style={pageStyles.container}>
@@ -735,8 +771,8 @@ export default function Dashboard() {
   return (
     <div style={pageStyles.page}>
       <div style={pageStyles.container}>
-        <header style={{ ...pageStyles.header, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', gap: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <header className="dashboard-header" style={pageStyles.header}>
+          <div className="header-left">
             <LogoIcon size={32} color="var(--accent)" />
             <div>
               <h1 style={{ ...pageStyles.pageTitle, fontSize: '1.1rem', margin: 0 }}>Industrial Command Center</h1>
@@ -744,7 +780,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="header-right">
             <div style={{ 
               ...pageStyles.statusBadge, 
               padding: '4px 10px', 
@@ -786,6 +822,37 @@ export default function Dashboard() {
               <span style={{ fontSize: '1rem' }}>{isLocked ? '🔒' : '🔓'}</span>
             </button>
             <ThemeToggle />
+            
+            <div className="auth-panel">
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>{username}</span>
+              <button
+                onClick={() => {
+                  localStorage.removeItem('username');
+                  router.push('/login');
+                }}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid var(--danger)',
+                  color: 'var(--danger)',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '0.7rem',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.background = 'var(--danger)';
+                  e.target.style.color = '#fff';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.background = 'transparent';
+                  e.target.style.color = 'var(--danger)';
+                }}
+              >
+                LOGOUT
+              </button>
+            </div>
           </div>
         </header>
 
@@ -1013,33 +1080,32 @@ export default function Dashboard() {
               </div>
               
               <div style={{ 
-                background: 'rgba(0,0,0,0.4)', 
-                padding: '60px', 
+                background: 'url(/images/floor-map.png) center/cover no-repeat', 
                 borderRadius: '16px', 
                 border: '1px solid var(--border)',
                 position: 'relative',
-                height: '500px',
-                perspective: '1200px',
-                overflow: 'hidden'
+                height: '600px',
+                overflow: 'hidden',
+                boxShadow: 'inset 0 0 100px rgba(0,0,0,0.8)'
               }}>
-                {/* ─── ISOMETRIC GRID ─── */}
-                <div style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  width: '1400px',
-                  height: '1400px',
-                  background: 'linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)',
-                  backgroundSize: '50px 50px',
-                  transform: 'translate(-50%, -40%) rotateX(60deg) rotateZ(45deg)',
-                  opacity: 0.15,
-                  pointerEvents: 'none'
-                }} />
 
-                <div style={{ position: 'relative', width: '100%', height: '100%', transformStyle: 'preserve-3d' }}>
+                <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                  
+                  {/* ─── PRODUCTION LINE PATH ─── */}
+                  <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none' }}>
+                    <line x1="25%" y1="65%" x2="75%" y2="35%" stroke="var(--border)" strokeWidth="8" />
+                    <line x1="25%" y1="65%" x2="75%" y2="35%" stroke="var(--accent)" strokeWidth="2" strokeDasharray="8, 8" opacity="0.8">
+                      <animate attributeName="stroke-dashoffset" from="16" to="0" dur="1s" repeatCount="indefinite" />
+                    </line>
+                    {/* Connection Nodes */}
+                    <circle cx="25%" cy="65%" r="12" fill="var(--surface-soft)" stroke="var(--border)" strokeWidth="2" />
+                    <circle cx="50%" cy="50%" r="12" fill="var(--surface-soft)" stroke="var(--border)" strokeWidth="2" />
+                    <circle cx="75%" cy="35%" r="12" fill="var(--surface-soft)" stroke="var(--border)" strokeWidth="2" />
+                  </svg>
+
                   {machineNames.map((m, i) => {
                     const stats = machineStats[m];
-                    const pos = i === 0 ? { left: '22%', top: '60%' } : i === 1 ? { left: '50%', top: '45%' } : { left: '78%', top: '30%' };
+                    const pos = i === 0 ? { left: '25%', top: '65%' } : i === 1 ? { left: '50%', top: '50%' } : { left: '75%', top: '35%' };
                     const isAlert = stats.status === 'Critical' || (stats.bearing && stats.bearing !== 'NORMAL');
                     const color = isAlert ? 'var(--danger)' : stats.state === 'ON' ? 'var(--success)' : 'var(--text-muted)';
                     
@@ -1062,14 +1128,34 @@ export default function Dashboard() {
                       >
                         {/* ─── 3D MACHINE IMAGE ─── */}
                         <div style={{ position: 'relative', width: '140px', height: '140px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                          {/* Floor Glow */}
+                          {/* Floor Shadow & Glow */}
                           <div style={{
-                            position: 'absolute', bottom: '10px', width: '80px', height: '30px',
-                            background: stats.state === 'ON' ? color : 'rgba(0,0,0,0.8)',
+                            position: 'absolute', bottom: '0px', width: '100px', height: '40px',
+                            background: 'rgba(0,0,0,0.9)',
                             borderRadius: '50%',
-                            filter: stats.state === 'ON' ? 'blur(15px)' : 'blur(5px)',
-                            opacity: stats.state === 'ON' ? 0.8 : 0.4,
-                            animation: stats.state === 'ON' ? 'pulse 2.5s infinite' : 'none'
+                            filter: 'blur(8px)',
+                            zIndex: 0
+                          }} />
+                          <div style={{
+                            position: 'absolute', bottom: '15px', width: '70px', height: '20px',
+                            background: stats.state === 'ON' ? color : 'transparent',
+                            borderRadius: '50%',
+                            filter: 'blur(10px)',
+                            opacity: stats.state === 'ON' ? 0.9 : 0,
+                            animation: stats.state === 'ON' ? 'pulse 2.5s infinite' : 'none',
+                            zIndex: 0
+                          }} />
+
+                          {/* Mounting Base */}
+                          <div style={{
+                            position: 'absolute', bottom: '15px', width: '80px', height: '24px',
+                            background: 'linear-gradient(180deg, var(--surface-soft) 0%, var(--surface) 100%)',
+                            border: '1px solid var(--border)',
+                            borderBottomWidth: '4px',
+                            borderBottomColor: '#05070a',
+                            borderRadius: '50%',
+                            boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.05)',
+                            zIndex: 1
                           }} />
                           
                           <img 
@@ -1105,10 +1191,10 @@ export default function Dashboard() {
                           <div style={{ 
                             fontSize: '0.7rem', 
                             fontWeight: 900, 
-                            color: '#fff', 
+                            color: 'var(--foreground)', 
                             textAlign: 'center', 
                             marginBottom: '8px',
-                            borderBottom: '1px solid rgba(255,255,255,0.1)',
+                            borderBottom: '1px solid var(--border)',
                             paddingBottom: '4px',
                             letterSpacing: '0.05em'
                           }}>
@@ -1117,18 +1203,18 @@ export default function Dashboard() {
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                             <div>
                               <div style={{ fontSize: '0.5rem', color: 'var(--text-muted)', fontWeight: 600 }}>TEMP</div>
-                              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: stats.temp > 75 ? 'var(--danger)' : '#fff' }}>
+                              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: stats.temp > 75 ? 'var(--danger)' : 'var(--foreground)' }}>
                                 {stats.isSensorError ? 'ERR' : `${stats.temp.toFixed(1)}°C`}
                               </div>
                             </div>
                             <div>
                               <div style={{ fontSize: '0.5rem', color: 'var(--text-muted)', fontWeight: 600 }}>LOAD</div>
-                              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: stats.current > 2.2 ? 'var(--warning)' : '#fff' }}>
+                              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: stats.current > 2.2 ? 'var(--warning)' : 'var(--foreground)' }}>
                                 {stats.current.toFixed(1)}A
                               </div>
                             </div>
                           </div>
-                          <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '8px 0' }} />
+                          <div style={{ height: '1px', background: 'var(--border)', margin: '8px 0' }} />
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                              <div style={{ fontSize: '0.5rem', color: 'var(--text-muted)', fontWeight: 600 }}>PREDICTION</div>
                              <div style={{ fontSize: '0.7rem', fontWeight: 900, color: stats.health > 80 ? 'var(--success)' : 'var(--danger)' }}>
@@ -1152,7 +1238,7 @@ export default function Dashboard() {
                 onClick={downloadLogsAsCSV}
                 style={{
                   padding: '8px 16px',
-                  background: 'rgba(255,255,255,0.05)',
+                  background: 'var(--badge-bg)',
                   border: '1px solid var(--border)',
                   borderRadius: '6px',
                   color: 'var(--accent)',
@@ -1177,7 +1263,7 @@ export default function Dashboard() {
                     style={{
                       ...pageStyles.logEntry,
                       padding: '12px',
-                      background: 'rgba(255, 255, 255, 0.02)',
+                      background: 'var(--badge-bg)',
                       borderRadius: '6px',
                       borderLeft: `4px solid ${
                         notification.type === 'error' ? 'var(--danger)' : 

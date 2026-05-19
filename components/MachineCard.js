@@ -1,30 +1,7 @@
 import MachineIcon from './MachineIcon';
 import { getMaintenanceProgress } from '../utils/helpers';
 
-const Sparkline = ({ data = [], dataKey, color }) => {
-  const points = data.slice(-15);
-  if (points.length < 2) return <div style={{ height: '16px' }} />;
-
-  const values = points.map((p) => Number(p[dataKey] ?? 0));
-  const max = Math.max(...values, 1);
-  const min = Math.min(...values, 0);
-  const range = (max - min) || 1;
-  const width = 100;
-  const height = 10;
-  const step = width / (values.length - 1);
-  
-  const path = values.map((v, i) => {
-    const x = i * step;
-    const y = height - ((v - min) / range) * height;
-    return `${i === 0 ? 'M' : 'L'}${x},${y}`;
-  }).join(' ');
-
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ width: '100%', height: '10px', display: 'block' }}>
-      <path d={path} fill="none" stroke={color} strokeWidth="1.5" vectorEffect="non-scaling-stroke" opacity="0.6" />
-    </svg>
-  );
-};
+import Gauge from './Gauge';
 
 export default function MachineCard({ machine, title, stats, history = [], onControl, isLocked, onViewDetails, openModal }) {
   const isActive = stats.state === 'ON';
@@ -46,7 +23,7 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <MachineIcon type={machine} size={20} color={isActive ? 'var(--accent)' : 'var(--text-muted)'} />
-          <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: '#fff' }}>{title}</h3>
+          <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: 'var(--foreground)' }}>{title}</h3>
         </div>
         <div style={{ 
           fontSize: '0.6rem', 
@@ -69,7 +46,7 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
             {stats.health.toFixed(0)}%
           </span>
         </div>
-        <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ height: '6px', background: 'var(--badge-bg)', borderRadius: '3px', overflow: 'hidden', border: '1px solid var(--border)' }}>
           <div style={{ 
             width: `${stats.health}%`, 
             height: '100%', 
@@ -80,93 +57,102 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
         </div>
       </div>
 
-      {/* ─── METRICS & GRAPHS ─── */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: stats.hasVibration ? '1fr 1fr 1fr' : '1fr 1fr', 
-        gap: '4px', 
-        marginTop: '4px' 
-      }}>
-        {[
-          { 
-            label: 'TEMP', 
-            val: stats.isSensorError ? 'ERR' : stats.temp.toFixed(1), 
-            unit: '°C', 
-            color: stats.isSensorError ? 'var(--danger)' : 'var(--warning)', 
-            key: 'temp' 
-          },
-          { label: 'LOAD', val: stats.current.toFixed(1), unit: 'A', color: 'var(--accent)', key: 'current' },
-          stats.hasVibration && { 
-            label: 'FFT PEAK', 
-            val: (stats.vibration_freq || 0).toFixed(1), 
-            unit: 'Hz', 
-            color: '#a855f7', 
-            key: 'vibration_freq' 
-          }
-        ].filter(Boolean).map((m, i) => (
-          <div key={i} style={{ background: 'rgba(0,0,0,0.2)', padding: '6px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)' }}>
-            <div style={{ fontSize: '0.5rem', color: 'var(--text-muted)', fontWeight: 700 }}>{m.label}</div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 800, color: m.color }}>{m.val}<span style={{ fontSize: '0.5rem', opacity: 0.6 }}>{m.unit}</span></div>
-            <Sparkline data={history} dataKey={m.key} color={m.color} />
-          </div>
-        ))}
-      </div>
-
-      {/* ─── NEW: FAULT DIAGNOSIS ─── */}
+      {/* ─── INSTRUMENT CLUSTER (GAUGES) ─── */}
       <div style={{ 
         display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        background: (stats.bearing && stats.bearing !== 'NORMAL') ? 'rgba(255, 45, 85, 0.1)' : 'rgba(255,255,255,0.02)', 
-        padding: '4px 8px', 
-        borderRadius: '6px',
-        border: `1px solid ${(stats.bearing && stats.bearing !== 'NORMAL') ? 'var(--danger)' : 'transparent'}`
+        flexWrap: 'wrap',
+        justifyContent: 'space-around', 
+        alignItems: 'center',
+        gap: '8px', 
+        marginTop: '8px',
+        marginBottom: '12px',
+        padding: '16px 8px',
+        background: 'rgba(0,0,0,0.5)',
+        borderRadius: '12px',
+        border: '1px solid var(--border)',
+        boxShadow: 'inset 0 4px 20px rgba(0,0,0,0.8)'
       }}>
-        <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: 700 }}>DIAGNOSTIC STATUS</div>
+        <Gauge 
+          value={stats.isSensorError ? 0 : Number(stats.temp.toFixed(0))} 
+          min={0} max={100} 
+          label="TEMP" unit="°C" 
+          color={stats.isSensorError ? 'var(--danger)' : 'var(--warning)'} 
+          size={75}
+        />
+        <Gauge 
+          value={Number(stats.current.toFixed(1))} 
+          min={0} max={10} 
+          label="LOAD" unit="A" 
+          color="var(--accent)" 
+          size={75}
+        />
+        {machine !== 'fan' && (
+          <Gauge 
+            value={Number((stats.vibration_freq || 0).toFixed(0))} 
+            min={0} max={1000} 
+            label="FFT PEAK" unit="Hz" 
+            color="#e879f9" 
+            size={75}
+          />
+        )}
+        <Gauge 
+          value={Number(stats.power.toFixed(0))} 
+          min={0} max={5000} 
+          label="POWER" unit="W" 
+          color="var(--success)" 
+          size={75}
+        />
+        <Gauge 
+          value={Number((stats.maintenance_due ?? 3000).toFixed(0))} 
+          min={0} max={3000} 
+          label="MAINT." unit="h" 
+          color={(stats.maintenanceProgress || 0) > 90 ? 'var(--danger)' : 'var(--accent)'} 
+          size={75}
+        />
+      </div>
+
+      {/* ─── MINI-CARDS GRID ─── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', marginBottom: '4px' }}>
+        {/* Diagnostic Status */}
         <div style={{ 
-          fontSize: '0.65rem', 
-          fontWeight: 900, 
-          color: (stats.bearing && stats.bearing !== 'NORMAL') ? 'var(--danger)' : 'var(--success)' 
+          background: (stats.bearing && stats.bearing !== 'NORMAL') ? 'rgba(255, 0, 85, 0.15)' : 'var(--badge-bg)', 
+          padding: '8px 4px', 
+          borderRadius: '8px',
+          border: `1px solid ${(stats.bearing && stats.bearing !== 'NORMAL') ? 'var(--danger)' : 'var(--border)'}`,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center'
         }}>
-          {stats.bearing || 'NORMAL'}
-        </div>
-      </div>
-
-      {/* ─── PREDICTION INFO ─── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '4px 8px', borderRadius: '6px' }}>
-        <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: 700 }}>EST. FAILURE</div>
-        <div style={{ fontSize: '0.65rem', fontWeight: 800, color: stats.ttfHours < 100 ? 'var(--danger)' : 'var(--success)' }}>
-          {stats.ttfHours > 900 ? 'STABLE' : `IN ${stats.ttfHours.toFixed(0)}h`}
-        </div>
-      </div>
-
-      {/* ─── MAINTENANCE PROGRESS ─── */}
-      <div style={{ marginTop: '2px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.45rem', fontWeight: 800, marginBottom: '2px' }}>
-          <span style={{ color: 'var(--text-muted)' }}>MAINTENANCE CYLE</span>
-          <span style={{ color: (stats.maintenanceProgress || 0) > 90 ? 'var(--danger)' : 'var(--accent)' }}>
-            {(stats.maintenance_due ?? 3000).toFixed(0)}h REMAINING
+          <span style={{ fontSize: '0.45rem', color: 'var(--text-muted)', fontWeight: 800, marginBottom: '2px' }}>DIAGNOSTIC</span>
+          <span style={{ fontSize: '0.65rem', fontWeight: 900, color: (stats.bearing && stats.bearing !== 'NORMAL') ? 'var(--danger)' : 'var(--success)' }}>
+            {stats.bearing || 'NORMAL'}
           </span>
         </div>
-        <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
-          <div style={{ 
-            width: `${stats.maintenanceProgress}%`, 
-            height: '100%', 
-            background: stats.maintenanceProgress > 90 ? 'var(--danger)' : 'var(--accent)',
-            transition: 'width 1s ease'
-          }} />
-        </div>
-      </div>
 
-      {/* ─── POWER & ENERGY ─── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', background: 'rgba(0, 255, 136, 0.05)', padding: '4px 8px', borderRadius: '6px', border: '1px solid rgba(0, 255, 136, 0.1)' }}>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '0.45rem', color: 'var(--success)', fontWeight: 800 }}>REAL-TIME POWER</span>
-          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fff' }}>{stats.power.toFixed(0)}<span style={{ fontSize: '0.5rem', marginLeft: '2px', opacity: 0.7 }}>W</span></span>
+        {/* Est. Failure */}
+        <div style={{ 
+          background: 'var(--badge-bg)', 
+          padding: '8px 4px', 
+          borderRadius: '8px',
+          border: '1px solid var(--border)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center'
+        }}>
+          <span style={{ fontSize: '0.45rem', color: 'var(--text-muted)', fontWeight: 800, marginBottom: '2px' }}>EST. FAILURE</span>
+          <span style={{ fontSize: '0.65rem', fontWeight: 900, color: stats.ttfHours < 100 ? 'var(--danger)' : 'var(--success)' }}>
+            {stats.ttfHours > 900 ? 'STABLE' : `IN ${stats.ttfHours.toFixed(0)}h`}
+          </span>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'right' }}>
-          <span style={{ fontSize: '0.45rem', color: 'var(--success)', fontWeight: 800 }}>TOTAL ENERGY</span>
-          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fff' }}>{stats.energy.toFixed(3)}<span style={{ fontSize: '0.5rem', marginLeft: '2px', opacity: 0.7 }}>kWh</span></span>
+
+        {/* Total Energy */}
+        <div style={{ 
+          background: 'rgba(0, 255, 136, 0.05)', 
+          padding: '8px 4px', 
+          borderRadius: '8px',
+          border: '1px solid rgba(0, 255, 136, 0.2)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center'
+        }}>
+          <span style={{ fontSize: '0.45rem', color: 'var(--success)', fontWeight: 800, marginBottom: '2px' }}>ENERGY</span>
+          <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--foreground)' }}>
+            {stats.energy.toFixed(2)}<span style={{ fontSize: '0.45rem', opacity: 0.7 }}>kWh</span>
+          </span>
         </div>
       </div>
 
@@ -175,7 +161,7 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
         <div style={{ display: 'flex', gap: '4px' }}>
           <button 
             onClick={() => onViewDetails(machine)}
-            style={{ padding: '4px 8px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: '#fff', fontSize: '0.55rem', fontWeight: 700, cursor: 'pointer' }}
+            style={{ padding: '4px 8px', borderRadius: '6px', background: 'var(--badge-bg)', border: '1px solid var(--border)', color: 'var(--foreground)', fontSize: '0.55rem', fontWeight: 700, cursor: 'pointer' }}
           >
             ANALYTICS
           </button>
@@ -185,7 +171,7 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
           style={{ 
             padding: '4px 12px', 
             borderRadius: '6px', 
-            background: stats.pendingCmdId ? 'rgba(255, 255, 255, 0.1)' : (isActive ? 'rgba(255, 45, 85, 0.2)' : 'rgba(0, 255, 136, 0.2)'), 
+            background: stats.pendingCmdId ? 'var(--badge-bg)' : (isActive ? 'rgba(255, 45, 85, 0.2)' : 'rgba(0, 255, 136, 0.2)'), 
             border: `1px solid ${stats.pendingCmdId ? 'var(--border)' : (isActive ? 'var(--danger)' : 'var(--success)')}`, 
             color: stats.pendingCmdId ? 'var(--text-muted)' : (isActive ? 'var(--danger)' : 'var(--success)'), 
             fontSize: '0.6rem', 
