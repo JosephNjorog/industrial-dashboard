@@ -18,6 +18,7 @@ import {
   runDiagnostics,
 } from '../utils/helpers';
 import HistoryTab from '../components/HistoryTab';
+import AdminPanel from '../components/AdminPanel';
 
 const machineTitles = {
   pump: 'Pump',
@@ -222,6 +223,8 @@ const pageStyles = {
 export default function Dashboard() {
   const router = useRouter();
   const [username, setUsername] = useState(null);
+  const [userRole, setUserRole] = useState(null);
+  const [canOperate, setCanOperate] = useState(false);
 
   const [machineStats, setMachineStats] = useState(() =>
     machineNames.reduce((accumulator, machine) => {
@@ -389,6 +392,8 @@ export default function Dashboard() {
       router.push('/login');
     } else {
       setUsername(user);
+      setUserRole(localStorage.getItem('userRole'));
+      setCanOperate(localStorage.getItem('canOperate') === 'true');
     }
   }, [router]);
 
@@ -673,6 +678,16 @@ export default function Dashboard() {
       return;
     }
 
+    if (userRole !== 'admin' && !canOperate) {
+      openModal({
+        title: 'Access Denied',
+        message: 'You do not have the active operation token to control machines. Please contact an Administrator.',
+        type: 'alert'
+      });
+      addNotification('ACCESS DENIED: Insufficient privileges to operate machines', 'error');
+      return;
+    }
+
     if (isLocked) {
       toggleLock();
       return;
@@ -902,6 +917,17 @@ export default function Dashboard() {
           >
             Logs
           </button>
+          {userRole === 'admin' && (
+            <button
+              style={{
+                ...pageStyles.tabButton,
+                ...(currentTab === 'admin' && pageStyles.tabButtonActive),
+              }}
+              onClick={() => setCurrentTab('admin')}
+            >
+              Admin
+            </button>
+          )}
         </div>
 
         {currentTab === 'dashboard' && (
@@ -1284,6 +1310,10 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+        )}
+
+        {currentTab === 'admin' && userRole === 'admin' && (
+          <AdminPanel addNotification={addNotification} />
         )}
       </div>
 

@@ -16,19 +16,32 @@ export default function Login() {
     }
   }, [router]);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (!username.trim()) {
-      setError('Username is required');
+    if (!username.trim() || !passcode.trim()) {
+      setError('Username and passcode are required');
       return;
     }
     
-    // Simple authentication
-    if (passcode === '1234') {
-      localStorage.setItem('username', username.trim());
-      router.push('/');
-    } else {
-      setError('Invalid passcode');
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username.trim(), passcode })
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        localStorage.setItem('username', data.username);
+        localStorage.setItem('userRole', data.role);
+        localStorage.setItem('canOperate', data.can_operate ? 'true' : 'false');
+        router.push('/');
+      } else {
+        setError(data.error || 'Authentication failed');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
     }
   };
 
