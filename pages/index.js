@@ -588,6 +588,8 @@ export default function Dashboard() {
           // 🧠 Run Diagnostic Engine
           const diagnostic = runDiagnostics(machine, normalized, machineHistory[machine] || [], settings.thresholds);
 
+          const isPendingResolved = prevMachine.pendingState && finalState === prevMachine.pendingState;
+
           return {
             ...previousState,
             [machine]: {
@@ -596,7 +598,8 @@ export default function Dashboard() {
               state: finalState,
               maintenance_due: finalMaintDue,
               maintenanceProgress: finalMaintProgress,
-              pendingCmdId: null, // Clear pending on any telemetry update
+              pendingCmdId: isPendingResolved ? null : prevMachine.pendingCmdId,
+              pendingState: isPendingResolved ? null : prevMachine.pendingState,
               power: newPower,
               energy: newEnergy,
               lastUpdate: time,
@@ -750,6 +753,25 @@ export default function Dashboard() {
         lastCommand: timestamp,
       },
     }));
+
+    // Auto-clear pending state after 5 seconds if no ACK/telemetry confirmation received
+    setTimeout(() => {
+      setMachineStats((previousState) => {
+        const current = previousState[machine];
+        if (current && current.pendingCmdId === cmdId) {
+          addNotification(`⚠️ TIMEOUT: Command for ${machineTitles[machine]} timed out`, 'warning');
+          return {
+            ...previousState,
+            [machine]: {
+              ...current,
+              pendingCmdId: null,
+              pendingState: null,
+            }
+          };
+        }
+        return previousState;
+      });
+    }, 5000);
 
     const machineTitle = machineTitles[machine];
     addNotification(`SENT: ${state} command to ${machineTitle} (ID: ${cmdId})`, 'control');
