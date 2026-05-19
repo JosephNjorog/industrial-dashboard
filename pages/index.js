@@ -588,7 +588,10 @@ export default function Dashboard() {
           // 🧠 Run Diagnostic Engine
           const diagnostic = runDiagnostics(machine, normalized, machineHistory[machine] || [], settings.thresholds);
 
-          const isPendingResolved = prevMachine.pendingState && finalState === prevMachine.pendingState;
+          // If we are waiting for an ACK, preserve the current state to prevent telemetry flickering
+          const finalState = prevMachine.pendingCmdId 
+            ? prevMachine.state 
+            : (normalized.state !== undefined ? normalized.state : prevMachine.state);
 
           return {
             ...previousState,
@@ -598,8 +601,8 @@ export default function Dashboard() {
               state: finalState,
               maintenance_due: finalMaintDue,
               maintenanceProgress: finalMaintProgress,
-              pendingCmdId: isPendingResolved ? null : prevMachine.pendingCmdId,
-              pendingState: isPendingResolved ? null : prevMachine.pendingState,
+              pendingCmdId: prevMachine.pendingCmdId, // Let ACK or Timeout clear this
+              pendingState: prevMachine.pendingState,
               power: newPower,
               energy: newEnergy,
               lastUpdate: time,
