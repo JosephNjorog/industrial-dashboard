@@ -174,17 +174,10 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
         {canOperate && (
           <button 
             onClick={() => onControl(machine, isActive ? 'OFF' : 'ON')}
+            disabled={!!stats.pendingCmdId}
+            className={`control-btn ${stats.pendingCmdId ? 'pending' : (isActive ? 'active-state' : 'inactive-state')}`}
             style={{ 
-              padding: '4px 12px', 
-              borderRadius: '6px', 
-              background: stats.pendingCmdId ? 'var(--badge-bg)' : (isActive ? 'rgba(255, 45, 85, 0.2)' : 'rgba(0, 255, 136, 0.2)'), 
-              border: `1px solid ${stats.pendingCmdId ? 'var(--border)' : (isActive ? 'var(--danger)' : 'var(--success)')}`, 
-              color: stats.pendingCmdId ? 'var(--text-muted)' : (isActive ? 'var(--danger)' : 'var(--success)'), 
-              fontSize: '0.6rem', 
-              fontWeight: 900, 
-              cursor: stats.pendingCmdId ? 'wait' : 'pointer',
               opacity: isLocked ? 0.7 : 1,
-              animation: stats.pendingCmdId ? 'pulse 1.5s infinite' : 'none'
             }}
           >
             {stats.pendingCmdId ? (isActive ? 'STOPPING...' : 'STARTING...') : (isLocked ? '🔒' : isActive ? 'STOP' : 'START')}

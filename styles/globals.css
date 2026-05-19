@@ -184,3 +184,50 @@ a {
   }
 }
 
+.control-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.65rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+.control-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+.control-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.95);
+}
+
+.control-btn.pending {
+  background: var(--badge-bg) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-muted) !important;
+  cursor: wait;
+  animation: pulse 1.5s infinite;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.control-btn.active-state {
+  background: rgba(255, 45, 85, 0.15);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+.control-btn.active-state:hover:not(:disabled) {
+  background: rgba(255, 45, 85, 0.3);
+  box-shadow: 0 4px 12px rgba(255, 45, 85, 0.25);
+}
+
+.control-btn.inactive-state {
+  background: rgba(0, 255, 136, 0.15);
+  border: 1px solid var(--success);
+  color: var(--success);
+}
+.control-btn.inactive-state:hover:not(:disabled) {
+  background: rgba(0, 255, 136, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 255, 136, 0.25);
+}
+
