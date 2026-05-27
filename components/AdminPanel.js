@@ -10,6 +10,19 @@ export default function AdminPanel({ addNotification }) {
   const [processingAdd, setProcessingAdd] = useState(false);
   const [processingUser, setProcessingUser] = useState(null);
 
+  // Settings states
+  const [pumpTemp, setPumpTemp] = useState(80);
+  const [pumpVib, setPumpVib] = useState(5);
+  const [motorTemp, setMotorTemp] = useState(90);
+  const [motorVib, setMotorVib] = useState(8);
+  const [fanTemp, setFanTemp] = useState(60);
+  const [fanVib, setFanVib] = useState(3);
+  const [maintInterval, setMaintInterval] = useState(3000);
+  
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [settingsSuccess, setSettingsSuccess] = useState('');
+  const [settingsError, setSettingsError] = useState('');
+
   const fetchUsers = async () => {
     try {
       const res = await fetch('/api/users');
@@ -19,7 +32,61 @@ export default function AdminPanel({ addNotification }) {
     }
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch('/api/settings');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.thresholds) {
+          setPumpTemp(data.thresholds.pump?.temp ?? 80);
+          setPumpVib(data.thresholds.pump?.vibration ?? 5);
+          setMotorTemp(data.thresholds.motor?.temp ?? 90);
+          setMotorVib(data.thresholds.motor?.vibration ?? 8);
+          setFanTemp(data.thresholds.fan?.temp ?? 60);
+          setFanVib(data.thresholds.fan?.vibration ?? 3);
+        }
+        setMaintInterval(data.maintenanceInterval ?? 3000);
+      }
+    } catch (err) {
+      console.error('Failed to load settings:', err);
+    }
+  };
+
+  useEffect(() => { 
+    fetchUsers(); 
+    fetchSettings();
+  }, []);
+
+  const handleSaveSettings = async (e) => {
+    e.preventDefault();
+    setIsSavingSettings(true);
+    setSettingsSuccess('');
+    setSettingsError('');
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          thresholds: {
+            pump: { temp: Number(pumpTemp), vibration: Number(pumpVib) },
+            motor: { temp: Number(motorTemp), vibration: Number(motorVib) },
+            fan: { temp: Number(fanTemp), vibration: Number(fanVib) }
+          },
+          maintenanceInterval: Number(maintInterval)
+        })
+      });
+      if (res.ok) {
+        setSettingsSuccess('Configuration updated successfully in database!');
+        addNotification('System thresholds updated in database', 'success');
+      } else {
+        const data = await res.json();
+        setSettingsError(data.error || 'Failed to update settings');
+      }
+    } catch (err) {
+      setSettingsError('Network error');
+    }
+    setIsSavingSettings(false);
+  };
 
   const handleAddUser = async (e) => {
     e.preventDefault();
@@ -239,6 +306,121 @@ export default function AdminPanel({ addNotification }) {
             )
           )}
         </div>
+      </div>
+
+      {/* Settings Panel Card */}
+      <div className="glass-panel" style={{ padding: '20px', borderRadius: '12px', marginTop: '24px' }}>
+        <h3 style={{ margin: '0 0 16px', color: 'var(--accent)', fontSize: '1.1rem', textTransform: 'uppercase' }}>⚙️ System Alarm Thresholds & Configurations</h3>
+        
+        {settingsSuccess && <div style={{ color: 'var(--success)', marginBottom: '16px', padding: '10px', background: 'rgba(0,255,136,0.1)', borderRadius: '8px', border: '1px solid var(--success)', fontSize: '0.85rem' }}>{settingsSuccess}</div>}
+        {settingsError && <div style={{ color: 'var(--danger)', marginBottom: '16px', padding: '10px', background: 'rgba(255,0,85,0.1)', borderRadius: '8px', border: '1px solid var(--danger)', fontSize: '0.85rem' }}>{settingsError}</div>}
+        
+        <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '16px' }}>
+            
+            {/* Pump Group */}
+            <div style={{ background: 'rgba(0,0,0,0.15)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: 'var(--accent)', marginBottom: '12px', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>PUMP LIMITS</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <label style={{ fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  Temp Limit (°C):
+                  <input 
+                    type="number" value={pumpTemp} onChange={e => setPumpTemp(e.target.value)} 
+                    style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--surface-soft)', color: 'var(--foreground)' }}
+                    required
+                  />
+                </label>
+                <label style={{ fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  Vibration Limit (g):
+                  <input 
+                    type="number" step="0.1" value={pumpVib} onChange={e => setPumpVib(e.target.value)} 
+                    style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--surface-soft)', color: 'var(--foreground)' }}
+                    required
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Motor Group */}
+            <div style={{ background: 'rgba(0,0,0,0.15)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: 'var(--accent)', marginBottom: '12px', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>MOTOR LIMITS</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <label style={{ fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  Temp Limit (°C):
+                  <input 
+                    type="number" value={motorTemp} onChange={e => setMotorTemp(e.target.value)} 
+                    style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--surface-soft)', color: 'var(--foreground)' }}
+                    required
+                  />
+                </label>
+                <label style={{ fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  Vibration Limit (g):
+                  <input 
+                    type="number" step="0.1" value={motorVib} onChange={e => setMotorVib(e.target.value)} 
+                    style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--surface-soft)', color: 'var(--foreground)' }}
+                    required
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Fan Group */}
+            <div style={{ background: 'rgba(0,0,0,0.15)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: 'var(--accent)', marginBottom: '12px', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>FAN LIMITS</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <label style={{ fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  Temp Limit (°C):
+                  <input 
+                    type="number" value={fanTemp} onChange={e => setFanTemp(e.target.value)} 
+                    style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--surface-soft)', color: 'var(--foreground)' }}
+                    required
+                  />
+                </label>
+                <label style={{ fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  Vibration Limit (g):
+                  <input 
+                    type="number" step="0.1" value={fanVib} onChange={e => setFanVib(e.target.value)} 
+                    style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--surface-soft)', color: 'var(--foreground)' }}
+                    required
+                  />
+                </label>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Maintenance Group */}
+          <div style={{ background: 'rgba(0,0,0,0.15)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+            <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: 'var(--accent)', marginBottom: '12px', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>GLOBAL MAINTENANCE PARAMETERS</div>
+            <label style={{ fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '4px', maxWidth: '240px' }}>
+              Maintenance Interval (Hours):
+              <input 
+                type="number" value={maintInterval} onChange={e => setMaintInterval(e.target.value)} 
+                style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--surface-soft)', color: 'var(--foreground)' }}
+                required
+              />
+            </label>
+          </div>
+
+          <div style={{ textAlign: 'right' }}>
+            <button 
+              type="submit" disabled={isSavingSettings}
+              style={{
+                padding: '12px 24px',
+                borderRadius: '8px',
+                background: isSavingSettings ? 'var(--text-muted)' : 'var(--accent)',
+                color: '#000',
+                fontWeight: 700,
+                border: 'none',
+                cursor: isSavingSettings ? 'wait' : 'pointer',
+                fontSize: '0.9rem'
+              }}
+            >
+              {isSavingSettings ? 'SAVING CONFIG...' : 'SAVE CONFIGURATION'}
+            </button>
+          </div>
+
+        </form>
       </div>
     </div>
   );
