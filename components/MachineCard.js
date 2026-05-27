@@ -57,6 +57,51 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
             transition: 'width 1s ease'
           }} />
         </div>
+        
+        {/* Predictive Diagnostics */}
+        {(() => {
+          const hoursLeft = Math.max(0, stats.maintenance_due ?? 3000);
+          const isVibrationAnomaly = stats.vibration_freq && stats.vibration_freq > 800;
+          const isTempAnomaly = stats.temp && stats.temp > 75;
+          
+          let rulEstimate = `${hoursLeft.toFixed(0)}h until scheduled maintenance`;
+          let rulColor = 'var(--text-muted)';
+          
+          if (hoursLeft < 200 || isVibrationAnomaly || isTempAnomaly) {
+            if (isVibrationAnomaly && isTempAnomaly) {
+              rulEstimate = 'CRITICAL DEGRADATION: SERVICE IMMEDIATELY!';
+              rulColor = 'var(--danger)';
+            } else if (isVibrationAnomaly) {
+              rulEstimate = 'HIGH VIBRATION: INSPECT BEARINGS';
+              rulColor = 'var(--danger)';
+            } else if (isTempAnomaly) {
+              rulEstimate = 'THERMAL OVERLOAD: CHECK VENTILATION';
+              rulColor = 'var(--warning)';
+            } else {
+              rulEstimate = `SERVICE DUE IN ${hoursLeft.toFixed(0)}h`;
+              rulColor = 'var(--danger)';
+            }
+          }
+          
+          return (
+            <div style={{ 
+              marginTop: '4px', 
+              fontSize: '0.58rem', 
+              fontWeight: 800, 
+              color: rulColor, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '4px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.02em'
+            }}>
+              <span>⚡</span>
+              <span style={{ animation: (rulColor === 'var(--danger)' || rulColor === 'var(--warning)') ? 'pulse 1s infinite' : 'none' }}>
+                {rulEstimate}
+              </span>
+            </div>
+          );
+        })()}
       </div>
 
       {/* ─── INSTRUMENT CLUSTER (GAUGES) ─── */}

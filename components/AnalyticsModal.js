@@ -1,8 +1,67 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Chart from './Chart';
 import MachineIcon from './MachineIcon';
 
 const AnalyticsModal = ({ isOpen, onClose, machine, title, history, logs = [] }) => {
+  const [maintenanceLogs, setMaintenanceLogs] = useState([]);
+  const [actionTaken, setActionTaken] = useState('');
+  const [partsReplaced, setPartsReplaced] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [maintError, setMaintError] = useState('');
+
+  const fetchMaintenanceLogs = async () => {
+    if (!machine) return;
+    try {
+      const res = await fetch(`/api/maintenance?machine=${machine}`);
+      if (res.ok) {
+        setMaintenanceLogs(await res.json());
+      }
+    } catch (err) {
+      console.error('Failed to fetch maintenance logs:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && machine) {
+      fetchMaintenanceLogs();
+      setActionTaken('');
+      setPartsReplaced('');
+      setMaintError('');
+    }
+  }, [isOpen, machine]);
+
+  const handleAddMaintenance = async (e) => {
+    e.preventDefault();
+    if (!actionTaken.trim()) return;
+    setIsSubmitting(true);
+    setMaintError('');
+    try {
+      const operator = localStorage.getItem('username') || 'Operator';
+      const res = await fetch('/api/maintenance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          machine,
+          operator,
+          action_taken: actionTaken.trim(),
+          parts_replaced: partsReplaced.trim()
+        })
+      });
+      if (res.ok) {
+        const updatedLogs = await res.json();
+        setMaintenanceLogs(updatedLogs);
+        setActionTaken('');
+        setPartsReplaced('');
+      } else {
+        const data = await res.json();
+        setMaintError(data.error || 'Failed to add log');
+      }
+    } catch (err) {
+      setMaintError('Network error');
+    }
+    setIsSubmitting(false);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -107,6 +166,113 @@ const AnalyticsModal = ({ isOpen, onClose, machine, title, history, logs = [] })
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '8px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px' }}>
                     <span style={{ color: 'var(--accent)' }}>{log.message}</span>
                     <span style={{ color: 'var(--text-muted)' }}>{new Date(log.timestamp).toLocaleTimeString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Collaborative Maintenance Log */}
+          <div style={{ 
+            gridColumn: '1 / -1', 
+            background: 'var(--badge-bg)', 
+            padding: '20px', 
+            borderRadius: '16px', 
+            border: '1px solid var(--border)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              <h3 style={{ fontSize: '1rem', color: 'var(--accent)', margin: 0, textTransform: 'uppercase' }}>🔧 Maintenance Service Records</h3>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>{maintenanceLogs.length} LOGS</span>
+            </div>
+
+            {/* Add Log Form */}
+            <form onSubmit={handleAddMaintenance} style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--foreground)' }}>RECORD NEW MAINTENANCE SERVICE</div>
+              {maintError && <div style={{ color: 'var(--danger)', fontSize: '0.8rem' }}>{maintError}</div>}
+              
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <input 
+                  type="text" 
+                  placeholder="Action taken (e.g. Lubricated bearings, cleared fault)" 
+                  value={actionTaken} 
+                  onChange={(e) => setActionTaken(e.target.value)}
+                  style={{ 
+                    flex: 2, 
+                    padding: '10px 14px', 
+                    borderRadius: '8px', 
+                    border: '1px solid var(--border)', 
+                    background: 'var(--surface-soft)', 
+                    color: 'var(--foreground)',
+                    fontSize: '0.85rem',
+                    minWidth: '200px'
+                  }}
+                  required
+                />
+                <input 
+                  type="text" 
+                  placeholder="Parts replaced (optional)" 
+                  value={partsReplaced} 
+                  onChange={(e) => setPartsReplaced(e.target.value)}
+                  style={{ 
+                    flex: 1, 
+                    padding: '10px 14px', 
+                    borderRadius: '8px', 
+                    border: '1px solid var(--border)', 
+                    background: 'var(--surface-soft)', 
+                    color: 'var(--foreground)',
+                    fontSize: '0.85rem',
+                    minWidth: '150px'
+                  }}
+                />
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    background: isSubmitting ? 'var(--text-muted)' : 'var(--accent)',
+                    color: '#000',
+                    border: 'none',
+                    fontWeight: 700,
+                    cursor: isSubmitting ? 'wait' : 'pointer',
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  {isSubmitting ? 'SAVING...' : 'SAVE RECORD'}
+                </button>
+              </div>
+            </form>
+
+            {/* List past logs */}
+            {maintenanceLogs.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic', margin: 0 }}>No maintenance logs recorded for this unit yet.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '200px', overflowY: 'auto', paddingRight: '4px' }}>
+                {maintenanceLogs.map((log) => (
+                  <div key={log.id} style={{ 
+                    background: 'rgba(0,0,0,0.15)', 
+                    padding: '12px', 
+                    borderRadius: '8px', 
+                    border: '1px solid var(--border)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>
+                      <span style={{ color: 'var(--accent)' }}>BY: {log.operator.toUpperCase()}</span>
+                      <span>{new Date(log.timestamp).toLocaleString()}</span>
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--foreground)', fontWeight: 500 }}>
+                      {log.action_taken}
+                    </div>
+                    {log.parts_replaced && (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--warning)' }}>
+                        <strong>Replaced:</strong> {log.parts_replaced}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
