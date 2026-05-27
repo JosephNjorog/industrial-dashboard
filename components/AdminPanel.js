@@ -23,6 +23,11 @@ export default function AdminPanel({ addNotification }) {
   const [settingsSuccess, setSettingsSuccess] = useState('');
   const [settingsError, setSettingsError] = useState('');
 
+  // Restore defaults state
+  const [isResettingDefaults, setIsResettingDefaults] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState('');
+
   const fetchUsers = async () => {
     try {
       const res = await fetch('/api/users');
@@ -86,6 +91,33 @@ export default function AdminPanel({ addNotification }) {
       setSettingsError('Network error');
     }
     setIsSavingSettings(false);
+  };
+
+  const handleRestoreDefaults = async () => {
+    if (resetConfirmText !== 'RESET') return;
+    setIsResettingDefaults(true);
+    try {
+      const res = await fetch('/api/reset-defaults', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        addNotification('Database restored to factory defaults', 'success');
+        // Refresh settings form
+        await fetchSettings();
+        await fetchUsers();
+        setShowResetConfirm(false);
+        setResetConfirmText('');
+        // Force re-login since users were wiped
+        setTimeout(() => {
+          localStorage.clear();
+          window.location.reload();
+        }, 1500);
+      } else {
+        addNotification(data.error || 'Reset failed', 'error');
+      }
+    } catch {
+      addNotification('Network error during reset', 'error');
+    }
+    setIsResettingDefaults(false);
   };
 
   const handleAddUser = async (e) => {
@@ -421,6 +453,77 @@ export default function AdminPanel({ addNotification }) {
           </div>
 
         </form>
+      </div>
+
+      {/* ── Danger Zone ─────────────────────────────────────────── */}
+      <div style={{
+        padding: '20px', borderRadius: '12px', marginTop: '24px',
+        border: '1px solid var(--danger)', background: 'rgba(255,0,85,0.05)'
+      }}>
+        <h3 style={{ margin: '0 0 6px', color: 'var(--danger)', fontSize: '1.1rem', textTransform: 'uppercase' }}>⚠️ Danger Zone</h3>
+        <p style={{ margin: '0 0 16px', fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+          <strong>Restore Defaults</strong> will reset all alarm thresholds, delete every operator account, and release all machine locks.
+          The system will log out immediately after. This cannot be undone.
+        </p>
+
+        {!showResetConfirm ? (
+          <button
+            onClick={() => setShowResetConfirm(true)}
+            style={{
+              padding: '10px 22px', borderRadius: '8px',
+              background: 'transparent', border: '1px solid var(--danger)',
+              color: 'var(--danger)', fontWeight: 700, fontSize: '0.88rem',
+              cursor: 'pointer', transition: 'all 0.2s'
+            }}
+          >
+            RESTORE FACTORY DEFAULTS
+          </button>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '360px' }}>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--danger)', fontWeight: 'bold' }}>
+              Type <code style={{ background: 'rgba(255,0,85,0.15)', padding: '2px 6px', borderRadius: '4px' }}>RESET</code> to confirm:
+            </p>
+            <input
+              type="text"
+              value={resetConfirmText}
+              onChange={e => setResetConfirmText(e.target.value)}
+              placeholder="Type RESET here"
+              autoFocus
+              style={{
+                padding: '10px', borderRadius: '6px',
+                border: '1px solid var(--danger)',
+                background: 'var(--surface-soft)', color: 'var(--foreground)',
+                letterSpacing: '0.08em', fontWeight: 'bold'
+              }}
+            />
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={handleRestoreDefaults}
+                disabled={resetConfirmText !== 'RESET' || isResettingDefaults}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: '8px',
+                  background: resetConfirmText === 'RESET' && !isResettingDefaults ? 'var(--danger)' : 'rgba(255,0,85,0.3)',
+                  border: 'none', color: '#fff', fontWeight: 700,
+                  cursor: resetConfirmText === 'RESET' && !isResettingDefaults ? 'pointer' : 'not-allowed',
+                  fontSize: '0.88rem', transition: 'all 0.2s'
+                }}
+              >
+                {isResettingDefaults ? 'RESETTING...' : 'CONFIRM RESET'}
+              </button>
+              <button
+                onClick={() => { setShowResetConfirm(false); setResetConfirmText(''); }}
+                disabled={isResettingDefaults}
+                style={{
+                  padding: '10px 18px', borderRadius: '8px',
+                  background: 'var(--badge-bg)', border: '1px solid var(--border)',
+                  color: 'var(--foreground)', cursor: 'pointer', fontSize: '0.88rem'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
