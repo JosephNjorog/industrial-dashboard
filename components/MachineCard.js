@@ -62,31 +62,32 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
       {/* ─── INSTRUMENT CLUSTER (GAUGES) ─── */}
       <div style={{ 
         display: 'flex', 
-        flexWrap: 'wrap',
-        justifyContent: 'space-around', 
+        flexWrap: 'nowrap',
+        justifyContent: 'space-between', 
         alignItems: 'center',
-        gap: '8px', 
+        gap: '4px', 
         marginTop: '8px',
         marginBottom: '12px',
-        padding: '16px 8px',
+        padding: '12px 6px',
         background: 'var(--instrument-bg)',
         borderRadius: '12px',
         border: '1px solid var(--border)',
-        boxShadow: 'var(--instrument-shadow)'
+        boxShadow: 'var(--instrument-shadow)',
+        overflowX: 'auto'
       }}>
         <Gauge 
           value={stats.isSensorError ? 0 : Number(stats.temp.toFixed(0))} 
           min={0} max={100} 
           label="TEMP" unit="°C" 
           color={stats.isSensorError ? 'var(--danger)' : 'var(--warning)'} 
-          size={75}
+          size={58}
         />
         <Gauge 
           value={Number(stats.current.toFixed(1))} 
           min={0} max={10} 
           label="LOAD" unit="A" 
           color="var(--accent)" 
-          size={75}
+          size={58}
         />
         {machine !== 'fan' && (
           <Gauge 
@@ -94,7 +95,7 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
             min={0} max={1000} 
             label="FFT PEAK" unit="Hz" 
             color="#e879f9" 
-            size={75}
+            size={58}
           />
         )}
         <Gauge 
@@ -102,14 +103,14 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
           min={0} max={5000} 
           label="POWER" unit="W" 
           color="var(--success)" 
-          size={75}
+          size={58}
         />
         <Gauge 
           value={Number((stats.maintenance_due ?? 3000).toFixed(0))} 
           min={0} max={3000} 
           label="MAINT." unit="h" 
           color={(stats.maintenanceProgress || 0) > 90 ? 'var(--danger)' : 'var(--accent)'} 
-          size={75}
+          size={58}
         />
       </div>
 
