@@ -167,3 +167,39 @@ export const runDiagnostics = (machine, stats, history, thresholds) => {
 
   return null;
 };
+
+// ─── ADVANCED MATH & ENGINEERING FORMULAS ───
+
+export const calculateLoadFactor = (current, machine) => {
+  // 240V 0.5HP AC Motor ratings
+  const ratedCurrent = machine === 'fan' ? 0.8 : 2.2; 
+  if (!current) return 0;
+  return Number(((current / ratedCurrent) * 100).toFixed(1));
+};
+
+export const calculateVelocityRMS = (accelerationG, frequencyHz = 50) => {
+  if (!accelerationG || !frequencyHz) return 0;
+  // Convert acceleration RMS (g) to velocity RMS (mm/s) at frequency f:
+  // v_rms = (a_rms * 9.81 * 1000) / (2 * Math.PI * f)
+  const velocityRMS = (accelerationG * 9.81 * 1000) / (2 * Math.PI * frequencyHz);
+  return Number(velocityRMS.toFixed(2));
+};
+
+export const getISOSeverity = (velocityRMS) => {
+  if (velocityRMS <= 1.12) return { status: 'GOOD', color: 'var(--success)' };
+  if (velocityRMS <= 2.80) return { status: 'SATISFACTORY', color: 'var(--success)' };
+  if (velocityRMS <= 7.10) return { status: 'UNSATISFACTORY', color: 'var(--warning)' };
+  return { status: 'CRITICAL', color: 'var(--danger)' };
+};
+
+export const calculateThermalRateOfRise = (tempHistory) => {
+  if (!tempHistory || tempHistory.length < 2) return 0;
+  // Look at last 5 ticks (assuming 2 seconds interval per tick)
+  const slice = tempHistory.slice(-5);
+  const tFirst = slice[0].temp;
+  const tLast = slice[slice.length - 1].temp;
+  const timeDeltaMinutes = ((slice.length - 1) * 2) / 60; // 2 seconds per tick
+  if (timeDeltaMinutes === 0) return 0;
+  const rate = (tLast - tFirst) / timeDeltaMinutes;
+  return Number(rate.toFixed(2)); // °C / minute
+};

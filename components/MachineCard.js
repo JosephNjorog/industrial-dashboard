@@ -1,11 +1,15 @@
 import MachineIcon from './MachineIcon';
-import { getMaintenanceProgress } from '../utils/helpers';
+import { getMaintenanceProgress, calculateLoadFactor, calculateVelocityRMS, getISOSeverity } from '../utils/helpers';
 
 import Gauge from './Gauge';
 
 export default function MachineCard({ machine, title, stats, history = [], onControl, isLocked, onViewDetails, openModal, canOperate = true }) {
   const isActive = stats.state === 'ON';
   const isAlert = stats.status === 'Critical' || stats.status === 'Warning';
+  
+  const velocityRMS = calculateVelocityRMS(stats.vibration, 50);
+  const iso = getISOSeverity(velocityRMS);
+  const loadFactor = calculateLoadFactor(stats.current, machine);
 
   return (
     <div className="glass-panel" style={{
@@ -61,26 +65,28 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
         {/* Predictive Diagnostics */}
         {(() => {
           const hoursLeft = Math.max(0, stats.maintenance_due ?? 3000);
-          const isVibrationAnomaly = stats.vibration_freq && stats.vibration_freq > 800;
-          const isTempAnomaly = stats.temp && stats.temp > 75;
           
           let rulEstimate = `${hoursLeft.toFixed(0)}h until scheduled maintenance`;
           let rulColor = 'var(--text-muted)';
           
-          if (hoursLeft < 200 || isVibrationAnomaly || isTempAnomaly) {
-            if (isVibrationAnomaly && isTempAnomaly) {
-              rulEstimate = 'CRITICAL DEGRADATION: SERVICE IMMEDIATELY!';
-              rulColor = 'var(--danger)';
-            } else if (isVibrationAnomaly) {
-              rulEstimate = 'HIGH VIBRATION: INSPECT BEARINGS';
-              rulColor = 'var(--danger)';
-            } else if (isTempAnomaly) {
-              rulEstimate = 'THERMAL OVERLOAD: CHECK VENTILATION';
-              rulColor = 'var(--warning)';
-            } else {
-              rulEstimate = `SERVICE DUE IN ${hoursLeft.toFixed(0)}h`;
-              rulColor = 'var(--danger)';
-            }
+          if (iso.status === 'CRITICAL') {
+            rulEstimate = `CRITICAL VIB: ${velocityRMS} mm/s (ISO SEVERITY)`;
+            rulColor = 'var(--danger)';
+          } else if (loadFactor > 110) {
+            rulEstimate = `MOTOR OVERLOAD: ${loadFactor}% LOAD FACTOR`;
+            rulColor = 'var(--danger)';
+          } else if (stats.temp > 75) {
+            rulEstimate = 'THERMAL OVERLOAD: CHECK VENTILATION';
+            rulColor = 'var(--warning)';
+          } else if (iso.status === 'UNSATISFACTORY') {
+            rulEstimate = `VIB WARNING: ${velocityRMS} mm/s (ISO 10816)`;
+            rulColor = 'var(--warning)';
+          } else if (loadFactor < 15 && stats.state === 'ON') {
+            rulEstimate = machine === 'pump' ? 'PUMP CAVITATION / DRY RUN' : 'NO LOAD / DRIVE BELT SLIPPAGE';
+            rulColor = 'var(--warning)';
+          } else if (hoursLeft < 200) {
+            rulEstimate = `SERVICE DUE IN ${hoursLeft.toFixed(0)}h`;
+            rulColor = 'var(--warning)';
           }
           
           return (
@@ -163,16 +169,16 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '8px' }}>
         {/* Diagnostic Status */}
         <div style={{ 
-          background: (stats.bearing && stats.bearing !== 'NORMAL') ? 'rgba(255, 0, 85, 0.15)' : 'var(--badge-bg)', 
+          background: iso.status === 'CRITICAL' ? 'rgba(255, 0, 85, 0.15)' : iso.status === 'UNSATISFACTORY' ? 'rgba(255, 184, 0, 0.15)' : 'var(--badge-bg)', 
           padding: '16px 8px', 
           borderRadius: '8px',
-          border: `1px solid ${(stats.bearing && stats.bearing !== 'NORMAL') ? 'var(--danger)' : 'var(--border)'}`,
+          border: `1px solid ${iso.status === 'CRITICAL' ? 'var(--danger)' : iso.status === 'UNSATISFACTORY' ? 'var(--warning)' : 'var(--border)'}`,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
           minHeight: '80px'
         }}>
-          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>DIAGNOSTIC</span>
-          <span style={{ fontSize: '1rem', fontWeight: 900, color: (stats.bearing && stats.bearing !== 'NORMAL') ? 'var(--danger)' : 'var(--success)', textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
-            {stats.bearing || 'NORMAL'}
+          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ISO 10816</span>
+          <span style={{ fontSize: '0.9rem', fontWeight: 900, color: iso.color, textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+            {iso.status}
           </span>
         </div>
 

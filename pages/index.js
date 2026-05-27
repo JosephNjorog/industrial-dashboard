@@ -16,6 +16,10 @@ import {
   normalizeMachineData,
   getMaintenanceProgress,
   runDiagnostics,
+  calculateLoadFactor,
+  calculateVelocityRMS,
+  getISOSeverity,
+  calculateThermalRateOfRise,
 } from '../utils/helpers';
 import HistoryTab from '../components/HistoryTab';
 import AdminPanel from '../components/AdminPanel';
@@ -260,6 +264,70 @@ export default function Dashboard() {
   const telemetryTimeoutRef = useRef(null); // Timeout to detect offline status
 
   const [analyticsMachine, setAnalyticsMachine] = useState(null);
+
+  const getLiveRecommendations = useCallback(() => {
+    const recs = [];
+    machineNames.forEach(m => {
+      const stats = machineStats[m];
+      const history = machineHistory[m] || [];
+      if (!stats) return;
+
+      const velocityRMS = calculateVelocityRMS(stats.vibration, 50);
+      const iso = getISOSeverity(velocityRMS);
+      const loadFactor = calculateLoadFactor(stats.current, m);
+      const tempRateOfRise = calculateThermalRateOfRise(history);
+
+      if (iso.status === 'CRITICAL') {
+        recs.push({
+          machine: m,
+          severity: 'critical',
+          title: `${machineTitles[m] || m} Critical Vibration`,
+          message: `Vibration velocity reached ${velocityRMS} mm/s, exceeding ISO 10816 limits. Immediate shutdown advised to prevent severe bearing damage.`,
+          time: new Date().toLocaleTimeString([], { hour12: false })
+        });
+      } else if (iso.status === 'UNSATISFACTORY') {
+        recs.push({
+          machine: m,
+          severity: 'warning',
+          title: `${machineTitles[m] || m} Vibration Warning`,
+          message: `Vibration velocity is ${velocityRMS} mm/s (ISO 10816 warning zone). Lubricate bearings or check shaft alignment during the next shift change.`,
+          time: new Date().toLocaleTimeString([], { hour12: false })
+        });
+      }
+
+      if (loadFactor > 110) {
+        recs.push({
+          machine: m,
+          severity: 'critical',
+          title: `${machineTitles[m] || m} Motor Overload`,
+          message: `Current draw (${stats.current}A) represents ${loadFactor}% load factor. Check for mechanical binding or pump jam.`,
+          time: new Date().toLocaleTimeString([], { hour12: false })
+        });
+      } else if (loadFactor < 15 && stats.state === 'ON') {
+        recs.push({
+          machine: m,
+          severity: 'warning',
+          title: `${machineTitles[m] || m} Under-load Detected`,
+          message: m === 'pump' 
+            ? `Pump running dry at ${loadFactor}% load factor. Cavitation warning: shut off pump to protect seals.`
+            : `Motor running with no resistance (${loadFactor}% load factor). Inspect for a broken drive belt or loose coupling.`,
+          time: new Date().toLocaleTimeString([], { hour12: false })
+        });
+      }
+
+      if (tempRateOfRise > 1.5) {
+        recs.push({
+          machine: m,
+          severity: 'warning',
+          title: `${machineTitles[m] || m} Stator Overheating`,
+          message: `Winding temperature rising at +${tempRateOfRise}°C/minute. Inspect air vents and cooling fan operation immediately.`,
+          time: new Date().toLocaleTimeString([], { hour12: false })
+        });
+      }
+    });
+
+    return recs;
+  }, [machineStats, machineHistory]);
 
   const openModal = useCallback((config) => {
     setModal({
@@ -1066,61 +1134,106 @@ export default function Dashboard() {
           </main>
         )}
 
-        {currentTab === 'insights' && (
-          <div style={pageStyles.insightsContainer}>
-            <h2 style={{ margin: '0 0 20px', color: 'var(--accent)' }}>Machine Insights</h2>
-            <div style={pageStyles.insightGrid}>
-              {machineNames.map((machine) => (
-                <div key={machine} style={pageStyles.insightCard}>
-                  <div style={pageStyles.insightCardHeader}>
-                    <MachineIcon type={machine} size={28} color="var(--accent)" />
-                    <div>
-                      <h3 style={pageStyles.insightCardTitle}>{machineTitles[machine]}</h3>
-                      <div style={pageStyles.insightCount}>
-                        {insightsByMachine[machine].length} insight{insightsByMachine[machine].length === 1 ? '' : 's'}
+        {currentTab === 'insights' && (() => {
+          const liveRecs = getLiveRecommendations();
+          return (
+            <div style={pageStyles.insightsContainer}>
+              <h2 style={{ margin: '0 0 20px', color: 'var(--accent)' }}>Machine Insights</h2>
+              <div style={pageStyles.insightGrid}>
+                {machineNames.map((machine) => (
+                  <div key={machine} style={pageStyles.insightCard}>
+                    <div style={pageStyles.insightCardHeader}>
+                      <MachineIcon type={machine} size={28} color="var(--accent)" />
+                      <div>
+                        <h3 style={pageStyles.insightCardTitle}>{machineTitles[machine]}</h3>
+                        <div style={pageStyles.insightCount}>
+                          {insightsByMachine[machine].length} insight{insightsByMachine[machine].length === 1 ? '' : 's'}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {insightsByMachine[machine].length === 0 ? (
-                    <p style={{ color: '#7f8fa4', margin: 0 }}>No insights for this machine yet.</p>
-                  ) : (
-                    insightsByMachine[machine].map((insight, index) => (
+                    {insightsByMachine[machine].length === 0 ? (
+                      <p style={{ color: '#7f8fa4', margin: 0 }}>No insights for this machine yet.</p>
+                    ) : (
+                      insightsByMachine[machine].map((insight, index) => (
+                        <div key={`${insight.id}-${index}`} style={pageStyles.insightItem}>
+                          <div style={pageStyles.insightMessage}>{insight.message}</div>
+                          <div style={pageStyles.insightTime}>
+                            {new Date(insight.timestamp).toLocaleString()}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                ))}
+
+                {unknownInsights.length > 0 && (
+                  <div style={pageStyles.insightCard}>
+                    <div style={pageStyles.insightCardHeader}>
+                      <MachineIcon type="unknown" size={28} color="var(--warning)" />
+                      <div>
+                        <h3 style={pageStyles.insightCardTitle}>General Insights</h3>
+                        <div style={pageStyles.insightCount}>
+                          {unknownInsights.length} insight{unknownInsights.length === 1 ? '' : 's'}
+                        </div>
+                      </div>
+                    </div>
+                    {unknownInsights.map((insight, index) => (
                       <div key={`${insight.id}-${index}`} style={pageStyles.insightItem}>
                         <div style={pageStyles.insightMessage}>{insight.message}</div>
                         <div style={pageStyles.insightTime}>
                           {new Date(insight.timestamp).toLocaleString()}
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
-              ))}
+                    ))}
+                  </div>
+                )}
 
-              {unknownInsights.length > 0 && (
-                <div style={pageStyles.insightCard}>
+                {/* Real-Time Predictive Recommendations */}
+                <div style={{ ...pageStyles.insightCard, gridColumn: '1 / -1', border: '1px solid var(--accent)' }}>
                   <div style={pageStyles.insightCardHeader}>
-                    <MachineIcon type="unknown" size={28} color="var(--warning)" />
+                    <span style={{ fontSize: '1.5rem' }}>💡</span>
                     <div>
-                      <h3 style={pageStyles.insightCardTitle}>General Insights</h3>
+                      <h3 style={{ ...pageStyles.insightCardTitle, color: 'var(--accent)' }}>Automated Decision Support Advisories</h3>
                       <div style={pageStyles.insightCount}>
-                        {unknownInsights.length} insight{unknownInsights.length === 1 ? '' : 's'}
+                        {liveRecs.length === 0 ? 'All systems operating within optimal thresholds' : `${liveRecs.length} active recommendation${liveRecs.length === 1 ? '' : 's'}`}
                       </div>
                     </div>
                   </div>
-                  {unknownInsights.map((insight, index) => (
-                    <div key={`${insight.id}-${index}`} style={pageStyles.insightItem}>
-                      <div style={pageStyles.insightMessage}>{insight.message}</div>
-                      <div style={pageStyles.insightTime}>
-                        {new Date(insight.timestamp).toLocaleString()}
-                      </div>
+                  
+                  {liveRecs.length === 0 ? (
+                    <div style={{ color: 'var(--success)', fontSize: '0.85rem', padding: '16px', background: 'rgba(0,255,136,0.05)', borderRadius: '10px', border: '1px solid rgba(0,255,136,0.15)' }}>
+                      ✓ **No anomalies detected**: Temperature slopes, electrical loads, and ISO vibration severity grades are all within green zones.
                     </div>
-                  ))}
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {liveRecs.map((rec, index) => (
+                        <div key={index} style={{ 
+                          ...pageStyles.insightItem, 
+                          border: `1px solid ${rec.severity === 'critical' ? 'var(--danger)' : 'var(--warning)'}`,
+                          background: rec.severity === 'critical' ? 'rgba(255, 0, 85, 0.05)' : 'rgba(255, 184, 0, 0.05)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <strong style={{ fontSize: '0.85rem', color: rec.severity === 'critical' ? 'var(--danger)' : 'var(--warning)', textTransform: 'uppercase' }}>
+                              ⚠️ {rec.title}
+                            </strong>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{rec.time}</span>
+                          </div>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--foreground)' }}>
+                            {rec.message}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {currentTab === 'history' && (
           <HistoryTab logs={notifications} insights={insights} />

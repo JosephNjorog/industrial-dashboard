@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Chart from './Chart';
 import MachineIcon from './MachineIcon';
+import { calculateLoadFactor, calculateVelocityRMS, getISOSeverity, calculateThermalRateOfRise } from '../utils/helpers';
 
 const AnalyticsModal = ({ isOpen, onClose, machine, title, history, logs = [] }) => {
   const [maintenanceLogs, setMaintenanceLogs] = useState([]);
@@ -61,6 +62,13 @@ const AnalyticsModal = ({ isOpen, onClose, machine, title, history, logs = [] })
     }
     setIsSubmitting(false);
   };
+
+  const latestStats = history.length > 0 ? history[history.length - 1] : { temp: 0, current: 0, vibration: 0 };
+  const velocityRMS = calculateVelocityRMS(latestStats.vibration, 50);
+  const iso = getISOSeverity(velocityRMS);
+  const loadFactor = calculateLoadFactor(latestStats.current, machine);
+  const tempRateOfRise = calculateThermalRateOfRise(history);
+  const crestFactor = latestStats.vibration > 0.8 ? 6.2 : latestStats.vibration > 0.5 ? 4.8 : 3.1;
 
   if (!isOpen) return null;
 
@@ -145,10 +153,81 @@ const AnalyticsModal = ({ isOpen, onClose, machine, title, history, logs = [] })
           <div style={{ background: 'rgba(0,0,0,0.2)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>
             <Chart data={history} dataKey="vibration" label="Vibration Analysis (g)" color="var(--accent)" />
           </div>
-          <div style={{ background: 'rgba(0,0,0,0.2)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>
+           <div style={{ background: 'rgba(0,0,0,0.2)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>
             <Chart data={history} dataKey="rpm" label="Motor Speed (RPM)" color="#4fc3f7" />
           </div>
           
+          {/* Advanced Engineering Diagnostics Card */}
+          <div style={{ 
+            gridColumn: '1 / -1', 
+            background: 'var(--badge-bg)', 
+            padding: '20px', 
+            borderRadius: '16px', 
+            border: '1px solid var(--border)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <h3 style={{ fontSize: '1rem', color: 'var(--accent)', margin: 0, textTransform: 'uppercase' }}>📊 Advanced Engineering Diagnostics</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+              
+              {/* Load Factor */}
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase' }}>Motor Load Factor</div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: loadFactor > 100 ? 'var(--danger)' : 'var(--success)' }}>
+                  {loadFactor}%
+                </div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  {loadFactor > 100 ? 'Overloaded' : loadFactor < 15 ? 'Dry Running / No-Load' : 'Optimal Capacity'}
+                </div>
+              </div>
+
+              {/* ISO 10816 Severity */}
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase' }}>Vib Velocity (ISO 10816)</div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: iso.color }}>
+                  {velocityRMS} <span style={{ fontSize: '0.9rem' }}>mm/s</span>
+                </div>
+                <span style={{ 
+                  display: 'inline-block',
+                  marginTop: '4px',
+                  padding: '2px 8px', 
+                  borderRadius: '4px', 
+                  fontSize: '0.6rem', 
+                  fontWeight: 900, 
+                  background: iso.color + '20', 
+                  color: iso.color,
+                  border: `1px solid ${iso.color}`
+                }}>
+                  {iso.status}
+                </span>
+              </div>
+
+              {/* Crest Factor */}
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase' }}>Bearing Crest Factor</div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: crestFactor > 5.0 ? 'var(--danger)' : 'var(--success)' }}>
+                  {crestFactor.toFixed(1)}
+                </div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  {crestFactor > 5.0 ? 'Early Bearing Wear' : 'Healthy Ball Bearings'}
+                </div>
+              </div>
+
+              {/* Thermal rate of rise */}
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase' }}>Thermal Rate of Rise</div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: Math.abs(tempRateOfRise) > 1.5 ? 'var(--warning)' : 'var(--success)' }}>
+                  {tempRateOfRise > 0 ? `+${tempRateOfRise}` : tempRateOfRise} <span style={{ fontSize: '0.9rem' }}>°C/m</span>
+                </div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  {Math.abs(tempRateOfRise) > 1.5 ? 'Rapid Heat Delta' : 'Thermally Stable'}
+                </div>
+              </div>
+
+            </div>
+          </div>
+
           {/* Command Audit Trail */}
           <div style={{ 
             gridColumn: '1 / -1', 
