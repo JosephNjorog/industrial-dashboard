@@ -3,7 +3,7 @@ import Chart from './Chart';
 import MachineIcon from './MachineIcon';
 import { calculateLoadFactor, calculateVelocityRMS, getISOSeverity, calculateThermalRateOfRise } from '../utils/helpers';
 
-const AnalyticsModal = ({ isOpen, onClose, machine, title, history, logs = [] }) => {
+const AnalyticsModal = ({ isOpen, onClose, machine, title, history, logs = [], prefilledAction = '', clearPrefilledAction }) => {
   const [maintenanceLogs, setMaintenanceLogs] = useState([]);
   const [actionTaken, setActionTaken] = useState('');
   const [partsReplaced, setPartsReplaced] = useState('');
@@ -25,11 +25,14 @@ const AnalyticsModal = ({ isOpen, onClose, machine, title, history, logs = [] })
   useEffect(() => {
     if (isOpen && machine) {
       fetchMaintenanceLogs();
-      setActionTaken('');
+      setActionTaken(prefilledAction || '');
       setPartsReplaced('');
       setMaintError('');
+      if (prefilledAction && clearPrefilledAction) {
+        clearPrefilledAction();
+      }
     }
-  }, [isOpen, machine]);
+  }, [isOpen, machine, prefilledAction]);
 
   const handleAddMaintenance = async (e) => {
     e.preventDefault();
@@ -69,6 +72,91 @@ const AnalyticsModal = ({ isOpen, onClose, machine, title, history, logs = [] })
   const loadFactor = calculateLoadFactor(latestStats.current, machine);
   const tempRateOfRise = calculateThermalRateOfRise(history);
   const crestFactor = latestStats.vibration > 0.8 ? 6.2 : latestStats.vibration > 0.5 ? 4.8 : 3.1;
+
+  const getRCATimeline = () => {
+    const timeline = [];
+    if (!history || history.length < 2) return [];
+
+    const getRelativeTime = (index) => {
+      const diffSec = Math.round((history.length - 1 - index) * 2);
+      return diffSec === 0 ? "Just now" : `${diffSec}s ago`;
+    };
+
+    let firstThermalRiseIdx = -1;
+    for (let j = 1; j < history.length; j++) {
+      const slice = history.slice(0, j + 1);
+      const rate = calculateThermalRateOfRise(slice);
+      if (rate > 1.5) {
+        firstThermalRiseIdx = j;
+        break;
+      }
+    }
+
+    let firstOverloadIdx = -1;
+    const currentLimit = machine === 'fan' ? 0.8 : 2.2;
+    for (let j = 0; j < history.length; j++) {
+      if (history[j].current > currentLimit) {
+        firstOverloadIdx = j;
+        break;
+      }
+    }
+
+    let firstVibIdx = -1;
+    for (let j = 0; j < history.length; j++) {
+      const vRMS = calculateVelocityRMS(history[j].vibration, 50);
+      if (vRMS > 2.8) {
+        firstVibIdx = j;
+        break;
+      }
+    }
+
+    const events = [];
+    if (firstThermalRiseIdx !== -1) events.push({ idx: firstThermalRiseIdx, key: 'thermal' });
+    if (firstOverloadIdx !== -1) events.push({ idx: firstOverloadIdx, key: 'overload' });
+    if (firstVibIdx !== -1) events.push({ idx: firstVibIdx, key: 'vib' });
+
+    events.sort((a, b) => a.idx - b.idx);
+
+    const sortedTimeline = events.map(ev => {
+      if (ev.key === 'thermal') {
+        const rate = calculateThermalRateOfRise(history.slice(0, ev.idx + 1));
+        return {
+          time: getRelativeTime(ev.idx),
+          title: "Thermal Gradient Spiked",
+          desc: `Stator winding heat delta crossed safety limit (+${rate.toFixed(2)}°C/min). Check air ducts.`,
+          type: "warning"
+        };
+      } else if (ev.key === 'overload') {
+        const lf = calculateLoadFactor(history[ev.idx].current, machine);
+        return {
+          time: getRelativeTime(ev.idx),
+          title: "Current Overload Warning",
+          desc: `Current draw surged to ${history[ev.idx].current.toFixed(2)}A (${lf.toFixed(0)}% load). Inspect for binding.`,
+          type: "critical"
+        };
+      } else {
+        const vRMS = calculateVelocityRMS(history[ev.idx].vibration, 50);
+        return {
+          time: getRelativeTime(ev.idx),
+          title: "ISO Vibration Severity Alert",
+          desc: `Vibration velocity reached ${vRMS.toFixed(2)} mm/s, entering ISO 10816 Warning zone.`,
+          type: "warning"
+        };
+      }
+    });
+
+    const latestState = history[history.length - 1]?.rawState || history[history.length - 1]?.state;
+    if (latestState === 'FAULT' || latestStats.failureProb > 80) {
+      sortedTimeline.push({
+        time: "Just now",
+        title: "Emergency Auto-Shutdown",
+        desc: "Relay trip triggered automatically by the system to protect winding coils & bearings.",
+        type: "danger"
+      });
+    }
+
+    return sortedTimeline;
+  };
 
   if (!isOpen) return null;
 
@@ -227,6 +315,64 @@ const AnalyticsModal = ({ isOpen, onClose, machine, title, history, logs = [] })
 
             </div>
           </div>
+
+          {/* Root-Cause Analysis (RCA) Incident Timeline */}
+          {(() => {
+            const timeline = getRCATimeline();
+            return (
+              <div style={{ 
+                gridColumn: '1 / -1', 
+                background: 'var(--badge-bg)', 
+                padding: '20px', 
+                borderRadius: '16px', 
+                border: '1px solid var(--border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ fontSize: '1rem', color: 'var(--accent)', margin: 0, textTransform: 'uppercase' }}>🔍 Root-Cause Incident Timeline</h3>
+                  <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '4px 8px', background: timeline.length > 0 ? 'rgba(255,0,85,0.1)' : 'rgba(0,255,136,0.1)', color: timeline.length > 0 ? 'var(--danger)' : 'var(--success)', borderRadius: '6px' }}>
+                    {timeline.length > 0 ? 'ANOMALIES DETECTED' : 'SYSTEM HEALTHY'}
+                  </span>
+                </div>
+
+                {timeline.length === 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px', textAlign: 'center' }}>
+                    <span style={{ fontSize: '1.5rem', marginBottom: '8px', color: 'var(--success)' }}>✓</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 'bold' }}>ALL DIAGNOSTICS OPERATIONAL</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>No active telemetry anomalies. Root-cause sequences will display automatically upon alarm trigger.</span>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative', paddingLeft: '20px', borderLeft: '2px solid var(--border)' }}>
+                    {timeline.map((event, idx) => (
+                      <div key={idx} style={{ position: 'relative' }}>
+                        <div style={{
+                          position: 'absolute',
+                          left: '-26px',
+                          top: '2px',
+                          width: '10px',
+                          height: '10px',
+                          borderRadius: '50%',
+                          background: event.type === 'critical' || event.type === 'danger' ? 'var(--danger)' : 'var(--warning)',
+                          boxShadow: `0 0 8px ${event.type === 'critical' || event.type === 'danger' ? 'var(--danger)' : 'var(--warning)'}`
+                        }} />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                          <strong style={{ fontSize: '0.8rem', color: event.type === 'critical' || event.type === 'danger' ? 'var(--danger)' : 'var(--warning)', textTransform: 'uppercase' }}>
+                            {event.title}
+                          </strong>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{event.time}</span>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--foreground)' }}>
+                          {event.desc}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Command Audit Trail */}
           <div style={{ 

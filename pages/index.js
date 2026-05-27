@@ -264,6 +264,8 @@ export default function Dashboard() {
   const telemetryTimeoutRef = useRef(null); // Timeout to detect offline status
 
   const [analyticsMachine, setAnalyticsMachine] = useState(null);
+  const [prefilledAction, setPrefilledAction] = useState('');
+  const [wastedKesh, setWastedKesh] = useState(145.2);
 
   const getLiveRecommendations = useCallback(() => {
     const recs = [];
@@ -283,7 +285,8 @@ export default function Dashboard() {
           severity: 'critical',
           title: `${machineTitles[m] || m} Critical Vibration`,
           message: `Vibration velocity reached ${velocityRMS} mm/s, exceeding ISO 10816 limits. Immediate shutdown advised to prevent severe bearing damage.`,
-          time: new Date().toLocaleTimeString([], { hour12: false })
+          time: new Date().toLocaleTimeString([], { hour12: false }),
+          remediation: `Inspect structural coupling, check mounting bolts, and align shafts on ${machineTitles[m] || m}.`
         });
       } else if (iso.status === 'UNSATISFACTORY') {
         recs.push({
@@ -291,7 +294,8 @@ export default function Dashboard() {
           severity: 'warning',
           title: `${machineTitles[m] || m} Vibration Warning`,
           message: `Vibration velocity is ${velocityRMS} mm/s (ISO 10816 warning zone). Lubricate bearings or check shaft alignment during the next shift change.`,
-          time: new Date().toLocaleTimeString([], { hour12: false })
+          time: new Date().toLocaleTimeString([], { hour12: false }),
+          remediation: `Perform bearing lubrication and verify coupling balance on ${machineTitles[m] || m}.`
         });
       }
 
@@ -301,7 +305,8 @@ export default function Dashboard() {
           severity: 'critical',
           title: `${machineTitles[m] || m} Motor Overload`,
           message: `Current draw (${stats.current}A) represents ${loadFactor}% load factor. Check for mechanical binding or pump jam.`,
-          time: new Date().toLocaleTimeString([], { hour12: false })
+          time: new Date().toLocaleTimeString([], { hour12: false }),
+          remediation: `Perform inspection for mechanical blockages / clear binding obstructions on ${machineTitles[m] || m}.`
         });
       } else if (loadFactor < 15 && stats.state === 'ON') {
         recs.push({
@@ -311,7 +316,10 @@ export default function Dashboard() {
           message: m === 'pump' 
             ? `Pump running dry at ${loadFactor}% load factor. Cavitation warning: shut off pump to protect seals.`
             : `Motor running with no resistance (${loadFactor}% load factor). Inspect for a broken drive belt or loose coupling.`,
-          time: new Date().toLocaleTimeString([], { hour12: false })
+          time: new Date().toLocaleTimeString([], { hour12: false }),
+          remediation: m === 'pump'
+            ? `Re-prime pump inlet suction line, inspect suction strainer, and check fluid supply.`
+            : `Check belt tension, inspect pulley alignment, and verify drive shaft integrity.`
         });
       }
 
@@ -321,7 +329,8 @@ export default function Dashboard() {
           severity: 'warning',
           title: `${machineTitles[m] || m} Stator Overheating`,
           message: `Winding temperature rising at +${tempRateOfRise}°C/minute. Inspect air vents and cooling fan operation immediately.`,
-          time: new Date().toLocaleTimeString([], { hour12: false })
+          time: new Date().toLocaleTimeString([], { hour12: false }),
+          remediation: `Clean cooling ventilation grills and check stator fan blades on ${machineTitles[m] || m}.`
         });
       }
     });
@@ -497,6 +506,27 @@ export default function Dashboard() {
     }
     window.localStorage.setItem('machineHistory', JSON.stringify(machineHistory));
   }, [machineHistory]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      let wasteWatts = 0;
+      machineNames.forEach(m => {
+        const stats = machineStats[m];
+        if (stats && stats.state === 'ON') {
+          const loadFactor = calculateLoadFactor(stats.current, m);
+          if (loadFactor < 15) {
+            wasteWatts += m === 'fan' ? 33 : 100;
+          }
+        }
+      });
+      if (wasteWatts > 0) {
+        const wastedKwh = (wasteWatts / 1000) / 3600;
+        const costKesh = wastedKwh * 30; // 30 KES/kWh
+        setWastedKesh(prev => prev + costKesh);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [machineStats]);
 
   useEffect(() => {
     let activeClient = null;
@@ -1139,6 +1169,147 @@ export default function Dashboard() {
           return (
             <div style={pageStyles.insightsContainer}>
               <h2 style={{ margin: '0 0 20px', color: 'var(--accent)' }}>Machine Insights</h2>
+
+              {/* Advanced Summary Widgets */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                gap: '20px',
+                marginBottom: '24px'
+              }}>
+                {/* 1. OEE Dashboard Widget */}
+                {(() => {
+                  const avgHealth = machineNames.reduce((sum, m) => sum + (machineStats[m]?.health ?? 100), 0) / 3;
+                  const availability = Math.round(avgHealth * 0.95);
+                  
+                  let runningLoads = [];
+                  machineNames.forEach(m => {
+                    const stats = machineStats[m];
+                    if (stats && stats.state === 'ON') {
+                      runningLoads.push(calculateLoadFactor(stats.current, m));
+                    }
+                  });
+                  const performance = runningLoads.length > 0 
+                    ? Math.round(Math.min(100, runningLoads.reduce((s, l) => s + l, 0) / runningLoads.length))
+                    : 100;
+                    
+                  const anomalyCount = machineNames.filter(m => {
+                    const stats = machineStats[m];
+                    return stats && (stats.overheatRisk > 10 || stats.overloadRisk > 10 || stats.misalignRisk > 10);
+                  }).length;
+                  const quality = Math.round(((3 - anomalyCount) / 3) * 100);
+                  
+                  const oee = Math.round((availability * performance * quality) / 10000);
+
+                  return (
+                    <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>PLANT EFFECTIVENESS</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '4px 8px', background: 'rgba(0,255,136,0.1)', color: 'var(--success)', borderRadius: '6px' }}>OEE ANALYSIS</span>
+                      </div>
+                      
+                      <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                        <div style={{ position: 'relative', width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="80" height="80" viewBox="0 0 36 36">
+                            <path
+                              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                              fill="none"
+                              stroke="var(--border)"
+                              strokeWidth="3.5"
+                            />
+                            <path
+                              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                              fill="none"
+                              stroke="var(--accent)"
+                              strokeDasharray={`${oee}, 100`}
+                              strokeWidth="3.5"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                          <div style={{ position: 'absolute', fontSize: '1.2rem', fontWeight: 900, color: 'var(--foreground)' }}>
+                            {oee}%
+                          </div>
+                        </div>
+                        
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 700, marginBottom: '2px' }}>
+                              <span>AVAILABILITY</span>
+                              <span style={{ color: 'var(--foreground)' }}>{availability}%</span>
+                            </div>
+                            <div style={{ height: '4px', background: 'var(--badge-bg)', borderRadius: '2px', overflow: 'hidden' }}>
+                              <div style={{ width: `${availability}%`, height: '100%', background: 'var(--accent)' }} />
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 700, marginBottom: '2px' }}>
+                              <span>PERFORMANCE</span>
+                              <span style={{ color: 'var(--foreground)' }}>{performance}%</span>
+                            </div>
+                            <div style={{ height: '4px', background: 'var(--badge-bg)', borderRadius: '2px', overflow: 'hidden' }}>
+                              <div style={{ width: `${performance}%`, height: '100%', background: 'var(--success)' }} />
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 700, marginBottom: '2px' }}>
+                              <span>QUALITY</span>
+                              <span style={{ color: 'var(--foreground)' }}>{quality}%</span>
+                            </div>
+                            <div style={{ height: '4px', background: 'var(--badge-bg)', borderRadius: '2px', overflow: 'hidden' }}>
+                              <div style={{ width: `${quality}%`, height: '100%', background: 'var(--warning)' }} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* 2. KES Cost & Idle Energy Waste Widget */}
+                {(() => {
+                  let activeWasteRate = 0;
+                  machineNames.forEach(m => {
+                    const stats = machineStats[m];
+                    if (stats && stats.state === 'ON') {
+                      const loadFactor = calculateLoadFactor(stats.current, m);
+                      if (loadFactor < 15) {
+                        activeWasteRate += m === 'fan' ? 33 : 100;
+                      }
+                    }
+                  });
+                  const hourlyCostRate = (activeWasteRate / 1000) * 30; // 30 KES/kWh
+
+                  return (
+                    <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>FINANCIAL ENERGY WASTE</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {hourlyCostRate > 0 && (
+                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--danger)', boxShadow: '0 0 8px var(--danger)' }} />
+                          )}
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '4px 8px', background: hourlyCostRate > 0 ? 'rgba(255,0,85,0.1)' : 'rgba(255,255,255,0.05)', color: hourlyCostRate > 0 ? 'var(--danger)' : 'var(--text-muted)', borderRadius: '6px' }}>
+                            {hourlyCostRate > 0 ? 'ACTIVE LOSS' : 'NO LOSS'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 900, color: hourlyCostRate > 0 ? 'var(--danger)' : 'var(--foreground)' }}>
+                          {wastedKesh.toFixed(2)} <span style={{ fontSize: '1rem', fontWeight: 500 }}>KES</span>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                          Estimated cumulative loss from idle runs
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '8px', borderTop: '1px solid var(--border)', paddingTop: '8px' }}>
+                          <span>Tariff Rate: 30 KES/kWh</span>
+                          <span>Idle Waste: {hourlyCostRate.toFixed(2)} KES/hr</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
               <div style={pageStyles.insightGrid}>
                 {machineNames.map((machine) => (
                   <div key={machine} style={pageStyles.insightCard}>
@@ -1225,6 +1396,29 @@ export default function Dashboard() {
                           <div style={{ fontSize: '0.85rem', color: 'var(--foreground)' }}>
                             {rec.message}
                           </div>
+                          {rec.remediation && (
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+                              <button 
+                                onClick={() => {
+                                  setAnalyticsMachine(rec.machine);
+                                  setPrefilledAction(rec.remediation);
+                                }}
+                                style={{
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  background: 'rgba(255, 255, 255, 0.1)',
+                                  color: 'var(--accent)',
+                                  border: '1px solid var(--accent)',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 'bold',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                }}
+                              >
+                                🔧 Log Maintenance Action
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1484,6 +1678,8 @@ export default function Dashboard() {
         title={machineTitles[analyticsMachine]}
         history={machineHistory[analyticsMachine] || []}
         logs={notifications.filter(n => n.message.includes(machineTitles[analyticsMachine]) && n.type === 'control')}
+        prefilledAction={prefilledAction}
+        clearPrefilledAction={() => setPrefilledAction('')}
       />
     </div>
   );
