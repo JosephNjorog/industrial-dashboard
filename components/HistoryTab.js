@@ -12,11 +12,14 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '12px',
     padding: '10px 0',
   },
   filterGroup: {
     display: 'flex',
     gap: '8px',
+    flexWrap: 'wrap',
   },
   filterButton: {
     padding: '6px 12px',
@@ -38,7 +41,7 @@ const styles = {
   },
   contentGrid: {
     display: 'grid',
-    gridTemplateColumns: '1fr 320px',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
     gap: '20px',
   },
   timelineSection: {
