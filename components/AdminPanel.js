@@ -117,6 +117,7 @@ export default function AdminPanel({ addNotification }) {
           {users.map(u => (
             <div key={u.username} style={{ 
               display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+              flexWrap: 'wrap', gap: '12px',
               padding: '16px', background: 'var(--background)', borderRadius: '8px',
               border: '1px solid var(--border)'
             }}>
@@ -124,7 +125,8 @@ export default function AdminPanel({ addNotification }) {
                 <div style={{ 
                   width: '40px', height: '40px', borderRadius: '50%', background: u.role === 'admin' ? 'var(--accent)' : 'var(--badge-bg)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.2rem',
-                  color: u.role === 'admin' ? '#000' : 'var(--foreground)'
+                  color: u.role === 'admin' ? '#000' : 'var(--foreground)',
+                  flexShrink: 0
                 }}>
                   {u.username.charAt(0).toUpperCase()}
                 </div>
@@ -134,7 +136,7 @@ export default function AdminPanel({ addNotification }) {
                 </div>
               </div>
               
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                 {u.can_operate ? (
                   <span style={{ 
                     padding: '6px 12px', background: 'rgba(0,255,136,0.1)', color: 'var(--success)', 
@@ -184,39 +186,41 @@ export default function AdminPanel({ addNotification }) {
               padding: '16px', background: 'var(--background)', borderRadius: '8px',
               border: '1px dashed var(--accent)', gap: '16px'
             }}>
-              <form onSubmit={handleAddUser} style={{ display: 'flex', gap: '12px', flex: 1, alignItems: 'center' }}>
+              <form onSubmit={handleAddUser} style={{ display: 'flex', gap: '12px', flex: 1, alignItems: 'center', flexWrap: 'wrap' }}>
                 <input 
                   type="text" placeholder="Username" value={newUsername} onChange={e => setNewUsername(e.target.value)} autoFocus
                   disabled={processingAdd}
-                  style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--surface-soft)', color: 'var(--foreground)', flex: 1 }}
+                  style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--surface-soft)', color: 'var(--foreground)', flex: 1, minWidth: '120px' }}
                 />
                 <input 
                   type="password" placeholder="Passcode" value={newPasscode} onChange={e => setNewPasscode(e.target.value)}
                   disabled={processingAdd}
-                  style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--surface-soft)', color: 'var(--foreground)', flex: 1 }}
+                  style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--surface-soft)', color: 'var(--foreground)', flex: 1, minWidth: '120px' }}
                 />
-                <button 
-                  type="submit" title="Save Operator"
-                  disabled={processingAdd}
-                  style={{
-                    width: '36px', height: '36px', borderRadius: '6px', background: processingAdd ? 'var(--text-muted)' : 'var(--success)',
-                    border: 'none', color: '#000', fontSize: '1.2rem', fontWeight: 'bold', 
-                    cursor: processingAdd ? 'wait' : 'pointer',
-                    animation: processingAdd ? 'pulse 1.5s infinite' : 'none'
-                  }}
-                >
-                  {processingAdd ? '⋯' : '✓'}
-                </button>
-                <button 
-                  type="button" onClick={() => setIsAdding(false)} title="Cancel"
-                  disabled={processingAdd}
-                  style={{
-                    width: '36px', height: '36px', borderRadius: '6px', background: 'var(--badge-bg)',
-                    border: '1px solid var(--border)', color: 'var(--foreground)', fontSize: '1.2rem', cursor: 'pointer'
-                  }}
-                >
-                  ✕
-                </button>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <button 
+                    type="submit" title="Save Operator"
+                    disabled={processingAdd}
+                    style={{
+                      width: '36px', height: '36px', borderRadius: '6px', background: processingAdd ? 'var(--text-muted)' : 'var(--success)',
+                      border: 'none', color: '#000', fontSize: '1.2rem', fontWeight: 'bold', 
+                      cursor: processingAdd ? 'wait' : 'pointer',
+                      animation: processingAdd ? 'pulse 1.5s infinite' : 'none'
+                    }}
+                  >
+                    {processingAdd ? '⋯' : '✓'}
+                  </button>
+                  <button 
+                    type="button" onClick={() => setIsAdding(false)} title="Cancel"
+                    disabled={processingAdd}
+                    style={{
+                      width: '36px', height: '36px', borderRadius: '6px', background: 'var(--badge-bg)',
+                      border: '1px solid var(--border)', color: 'var(--foreground)', fontSize: '1.2rem', cursor: 'pointer'
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
               </form>
             </div>
           ) : (

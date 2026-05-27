@@ -57,10 +57,11 @@ export default function Login() {
       alignItems: 'center',
       justifyContent: 'center',
       background: 'var(--background)',
-      fontFamily: 'Inter, system-ui, sans-serif'
+      fontFamily: 'Inter, system-ui, sans-serif',
+      padding: '16px'
     }}>
       <div className="glass-panel" style={{
-        padding: '40px',
+        padding: '32px 24px',
         borderRadius: '24px',
         width: '100%',
         maxWidth: '400px',

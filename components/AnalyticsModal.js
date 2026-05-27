@@ -74,7 +74,7 @@ const AnalyticsModal = ({ isOpen, onClose, machine, title, history, logs = [] })
           padding: '24px', 
           overflowY: 'auto',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
           gap: '24px'
         }}>
           <div style={{ background: 'rgba(0,0,0,0.2)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>

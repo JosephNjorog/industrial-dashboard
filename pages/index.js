@@ -125,6 +125,9 @@ const pageStyles = {
     display: 'flex',
     gap: '6px',
     marginBottom: '8px',
+    overflowX: 'auto',
+    whiteSpace: 'nowrap',
+    paddingBottom: '4px',
   },
   tabButton: {
     padding: '4px 12px',
@@ -136,6 +139,8 @@ const pageStyles = {
     fontWeight: 600,
     fontSize: '0.85rem',
     transition: 'all 0.2s',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
   },
   tabButtonActive: {
     background: 'var(--accent)',
@@ -1122,8 +1127,8 @@ export default function Dashboard() {
         )}
 
         {currentTab === 'floorplan' && (
-          <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px', overflow: 'hidden' }}>
-             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px', overflowX: 'auto' }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', minWidth: '800px' }}>
                 <div>
                   <h2 style={{ ...pageStyles.logTitle, margin: 0 }}>Factory Digital Twin</h2>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Isometric Spatial Mapping</div>
@@ -1141,6 +1146,7 @@ export default function Dashboard() {
                 border: '1px solid var(--border)',
                 position: 'relative',
                 height: '600px',
+                minWidth: '800px',
                 overflow: 'hidden',
                 boxShadow: 'inset 0 0 100px rgba(0,0,0,0.8)'
               }}>
