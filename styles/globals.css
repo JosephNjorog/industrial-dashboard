@@ -351,10 +351,29 @@ body.light-theme [style*="border"][style*="rgba(0, 180, 216"]:hover {
    Modern Sidebar Layout
    ───────────────────────────────────────────────────────────────────────────── */
 
-.dashboard-layout {
+.dashboard-page-wrapper {
+  padding: 20px !important;
+  box-sizing: border-box;
   display: flex;
   min-height: 100vh;
+}
+
+.dashboard-layout {
+  display: flex;
+  height: calc(100vh - 40px);
   width: 100%;
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  overflow: hidden;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6),
+              0 0 25px rgba(0, 240, 255, 0.03);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.light-theme .dashboard-layout {
+  box-shadow: 0 8px 30px rgba(31, 38, 135, 0.05),
+              0 0 15px rgba(0, 180, 216, 0.02);
 }
 
 .sidebar {
@@ -471,8 +490,15 @@ body.light-theme .sidebar-menu-btn.active {
 }
 
 @media (max-width: 768px) {
+  .dashboard-page-wrapper {
+    padding: 10px !important;
+  }
+
   .dashboard-layout {
     flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 20px);
+    border-radius: 12px;
   }
   
   .sidebar {

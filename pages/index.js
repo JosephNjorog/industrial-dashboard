@@ -1049,7 +1049,7 @@ export default function Dashboard() {
   });
 
   return (
-    <div style={pageStyles.page}>
+    <div className="dashboard-page-wrapper" style={pageStyles.page}>
       <div className="dashboard-layout">
         {/* Left Sidebar Navigation */}
         <aside className="sidebar">
