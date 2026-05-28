@@ -447,7 +447,7 @@ export default function Dashboard() {
   const toggleLock = useCallback(() => {
     if (!isLocked) {
       setIsLocked(true);
-      addNotification('Dashboard control system locked', 'control');
+      addNotification(`Dashboard control system locked by ${username || 'system'}`, 'control');
     } else {
       openModal({
         title: 'Unlock Controls',
@@ -456,14 +456,14 @@ export default function Dashboard() {
         onConfirm: (val) => {
           if (val === '1234') {
             setIsLocked(false);
-            addNotification('Dashboard controls unlocked', 'success');
+            addNotification(`Dashboard controls unlocked by ${username || 'operator'}`, 'success');
           } else {
-            addNotification('Access Denied: Incorrect Passcode', 'error');
+            addNotification(`Access Denied: Incorrect Passcode entered by ${username || 'operator'}`, 'error');
           }
         }
       });
     }
-  }, [isLocked, addNotification, openModal]);
+  }, [isLocked, addNotification, openModal, username]);
 
 
 
@@ -1013,7 +1013,7 @@ export default function Dashboard() {
     }, 5000);
 
     const machineTitle = machineTitles[machine];
-    addNotification(`SENT: ${state} command to ${machineTitle} (ID: ${cmdId})`, 'control');
+    addNotification(`SENT: ${state} command to ${machineTitle} by ${username} (ID: ${cmdId})`, 'control');
   };
 
   if (!mounted || !username) {
@@ -1820,7 +1820,7 @@ export default function Dashboard() {
         )}
 
         {currentTab === 'admin' && userRole === 'admin' && (
-          <AdminPanel addNotification={addNotification} />
+          <AdminPanel addNotification={addNotification} username={username} />
         )}
           </div> {/* Closing viewport-content */}
         </div> {/* Closing main-viewport */}

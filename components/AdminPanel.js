@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export default function AdminPanel({ addNotification }) {
+export default function AdminPanel({ addNotification, username }) {
   const [users, setUsers] = useState([]);
   const [isAdding, setIsAdding] = useState(false);
   const [newUsername, setNewUsername] = useState('');
@@ -85,7 +85,7 @@ export default function AdminPanel({ addNotification }) {
       });
       if (res.ok) {
         setSettingsSuccess('Configuration updated successfully in database!');
-        addNotification('System thresholds updated in database', 'success');
+        addNotification(`System thresholds updated in database by ${username}`, 'success');
       } else {
         const data = await res.json();
         setSettingsError(data.error || 'Failed to update settings');
@@ -103,7 +103,7 @@ export default function AdminPanel({ addNotification }) {
       const res = await fetch('/api/reset-defaults', { method: 'POST' });
       const data = await res.json();
       if (res.ok) {
-        addNotification('Database restored to factory defaults', 'success');
+        addNotification(`Database restored to factory defaults by ${username}`, 'success');
         // Refresh settings form
         await fetchSettings();
         await fetchUsers();
@@ -136,7 +136,7 @@ export default function AdminPanel({ addNotification }) {
       if (res.ok) {
         // Also clear localStorage cache
         ['pump', 'motor', 'fan'].forEach(m => localStorage.removeItem(`anomaly_baseline_${m}`));
-        addNotification('Anomaly baselines cleared — system will relearn from new data', 'success');
+        addNotification(`Anomaly baselines cleared by ${username} — system will relearn from new data`, 'success');
       } else {
         addNotification('Failed to reset baselines', 'error');
       }
@@ -166,7 +166,7 @@ export default function AdminPanel({ addNotification }) {
         setNewUsername('');
         setNewPasscode('');
         setIsAdding(false);
-        addNotification(`Operator ${newUsername} added`, 'success');
+        addNotification(`Operator ${newUsername} added by ${username}`, 'success');
       } else {
         setError(data.error);
       }
@@ -176,19 +176,19 @@ export default function AdminPanel({ addNotification }) {
     setProcessingAdd(false);
   };
 
-  const handleRemoveUser = async (username) => {
-    if (!confirm(`Are you sure you want to remove operator ${username}?`)) return;
-    setProcessingUser(`remove-${username}`);
+  const handleRemoveUser = async (usernameToRemove) => {
+    if (!confirm(`Are you sure you want to remove operator ${usernameToRemove}?`)) return;
+    setProcessingUser(`remove-${usernameToRemove}`);
     try {
       const res = await fetch('/api/users', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username })
+        body: JSON.stringify({ username: usernameToRemove })
       });
       const data = await res.json();
       if (res.ok) {
         setUsers(data);
-        addNotification(`Operator ${username} removed`, 'success');
+        addNotification(`Operator ${usernameToRemove} removed by ${username}`, 'success');
       } else {
         addNotification(data.error, 'error');
       }
@@ -198,19 +198,19 @@ export default function AdminPanel({ addNotification }) {
     setProcessingUser(null);
   };
 
-  const handleGrantControl = async (username) => {
-    setProcessingUser(`grant-${username}`);
+  const handleGrantControl = async (operatorToGrant) => {
+    setProcessingUser(`grant-${operatorToGrant}`);
     try {
       const res = await fetch('/api/users', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetUser: username })
+        body: JSON.stringify({ targetUser: operatorToGrant })
       });
       const data = await res.json();
       if (res.ok) {
         setUsers(data);
-        addNotification(`Control granted to ${username}`, 'control');
-        if (username === localStorage.getItem('username')) {
+        addNotification(`Control granted to ${operatorToGrant} by ${username}`, 'control');
+        if (operatorToGrant === localStorage.getItem('username')) {
           localStorage.setItem('canOperate', 'true');
           window.location.reload();
         } else if (localStorage.getItem('canOperate') === 'true') {
