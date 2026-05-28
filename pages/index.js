@@ -652,13 +652,31 @@ export default function Dashboard() {
     const handleMessage = (topic, payload) => {
       // 1. Handle ESP32 Global Status
       if (topic === 'factory/status' || topic === 'factory/system/status') {
-        setEspStatus(payload === 'ONLINE' ? 'ONLINE' : 'OFFLINE');
-        if (payload === 'OFFLINE') setWifiSignal(null);
+        const isOnline = payload === 'ONLINE';
+        setEspStatus(isOnline ? 'ONLINE' : 'OFFLINE');
+        if (!isOnline) {
+          setWifiSignal(null);
+          if (telemetryTimeoutRef.current) clearTimeout(telemetryTimeoutRef.current);
+        } else {
+          // If online status received, reset heartbeat timeout
+          if (telemetryTimeoutRef.current) clearTimeout(telemetryTimeoutRef.current);
+          telemetryTimeoutRef.current = setTimeout(() => {
+            setEspStatus('OFFLINE');
+            setWifiSignal(null);
+          }, 15000); // 15 seconds heartbeat timeout
+        }
         return;
       }
 
       // 2. Handle Heartbeat
       if (topic === 'factory/system/heartbeat') {
+        setEspStatus('ONLINE');
+        if (telemetryTimeoutRef.current) clearTimeout(telemetryTimeoutRef.current);
+        telemetryTimeoutRef.current = setTimeout(() => {
+          setEspStatus('OFFLINE');
+          setWifiSignal(null);
+        }, 15000); // 15 seconds heartbeat timeout
+
         if (payload) {
           if (payload.wifi !== undefined) setWifiSignal(payload.wifi);
           else if (payload.wifi_rssi !== undefined) setWifiSignal(payload.wifi_rssi);
@@ -759,12 +777,6 @@ export default function Dashboard() {
 
       // 🛡️ Auto-Online Detection: If we get any data, the ESP must be ONLINE
       setEspStatus('ONLINE');
-
-      // Reset the offline timeout. If no data arrives for 3 seconds, mark as OFFLINE
-      if (telemetryTimeoutRef.current) clearTimeout(telemetryTimeoutRef.current);
-      telemetryTimeoutRef.current = setTimeout(() => {
-        setEspStatus('OFFLINE');
-      }, 3000);
 
       try {
         // payload is already parsed by lib/mqtt.js, but handle string fallback just in case
