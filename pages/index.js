@@ -38,7 +38,7 @@ const machineTitles = {
 const pageStyles = {
   page: {
     minHeight: '100vh',
-    padding: '4px 8px',
+    padding: 0,
     background: 'var(--background)',
     color: 'var(--foreground)',
     fontFamily: 'Inter, system-ui, sans-serif',
@@ -1050,161 +1050,172 @@ export default function Dashboard() {
 
   return (
     <div style={pageStyles.page}>
-      <div style={pageStyles.container}>
-        <header className="dashboard-header" style={pageStyles.header}>
-          <div className="header-left">
+      <div className="dashboard-layout">
+        {/* Left Sidebar Navigation */}
+        <aside className="sidebar">
+          <div className="sidebar-brand">
             <LogoIcon size={32} color="var(--accent)" />
             <div>
-              <h1 style={{ ...pageStyles.pageTitle, fontSize: '1.1rem', margin: 0 }}>Industrial Command Center</h1>
-              <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Factory Real-Time Monitoring</div>
+              <h1 style={{ ...pageStyles.pageTitle, fontSize: '1.05rem', margin: 0, fontWeight: 800 }}>Command Center</h1>
+              <div style={{ fontSize: '0.58rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>Real-Time SCADA System</div>
             </div>
           </div>
 
-          <div className="header-right">
-            <div style={{ 
-              ...pageStyles.statusBadge, 
-              padding: '4px 10px', 
-              fontSize: '0.7rem',
-              backgroundColor: isConnected ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255, 45, 85, 0.1)',
-              color: isConnected ? 'var(--success)' : 'var(--danger)',
-              border: `1px solid ${isConnected ? 'var(--success)' : 'var(--danger)'}`
-            }}>
-              BROKER: {isConnected ? 'READY' : 'ERROR'}
-            </div>
-            
-            <div style={{ 
-              ...pageStyles.statusBadge, 
-              padding: '4px 10px', 
-              fontSize: '0.7rem',
-              backgroundColor: espStatus === 'ONLINE' ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255, 45, 85, 0.1)',
-              color: espStatus === 'ONLINE' ? 'var(--success)' : 'var(--danger)',
-              border: `1px solid ${espStatus === 'ONLINE' ? 'var(--success)' : 'var(--danger)'}`
-            }}>
-              ESP32: {espStatus} {wifiSignal && `(${wifiSignal}dBm)`}
-            </div>
-
-            <DateTimeCard />
-            
-            {(userRole === 'admin' || canOperate) && (
+          <div className="sidebar-menu">
+            <button
+              className={`sidebar-menu-btn ${currentTab === 'dashboard' ? 'active' : ''}`}
+              onClick={() => setCurrentTab('dashboard')}
+            >
+              <span style={{ fontSize: '1.15rem' }}>📊</span>
+              <span>Dashboard</span>
+            </button>
+            <button
+              className={`sidebar-menu-btn ${currentTab === 'insights' ? 'active' : ''}`}
+              onClick={() => setCurrentTab('insights')}
+            >
+              <span style={{ fontSize: '1.15rem' }}>💡</span>
+              <span>Insights</span>
+            </button>
+            <button
+              className={`sidebar-menu-btn ${currentTab === 'floorplan' ? 'active' : ''}`}
+              onClick={() => setCurrentTab('floorplan')}
+            >
+              <span style={{ fontSize: '1.15rem' }}>🗺️</span>
+              <span>Floor Plan</span>
+            </button>
+            <button
+              className={`sidebar-menu-btn ${currentTab === 'history' ? 'active' : ''}`}
+              onClick={() => setCurrentTab('history')}
+            >
+              <span style={{ fontSize: '1.15rem' }}>🕒</span>
+              <span>History</span>
+            </button>
+            <button
+              className={`sidebar-menu-btn ${currentTab === 'logs' ? 'active' : ''}`}
+              onClick={() => setCurrentTab('logs')}
+            >
+              <span style={{ fontSize: '1.15rem' }}>📃</span>
+              <span>Logs</span>
+            </button>
+            <button
+              className={`sidebar-menu-btn ${currentTab === 'intelligence' ? 'active' : ''}`}
+              onClick={() => setCurrentTab('intelligence')}
+            >
+              <span style={{ fontSize: '1.15rem' }}>🧠</span>
+              <span>Intelligence</span>
+            </button>
+            {userRole === 'admin' && (
               <button
-                onClick={toggleLock}
-                style={{
-                  background: isLocked ? 'var(--danger)' : 'var(--success)',
-                  border: 'none',
-                  borderRadius: '6px',
-                  width: '32px',
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                }}
+                className={`sidebar-menu-btn ${currentTab === 'admin' ? 'active' : ''}`}
+                onClick={() => setCurrentTab('admin')}
               >
-                <span style={{ fontSize: '1rem' }}>{isLocked ? '🔒' : '🔓'}</span>
+                <span style={{ fontSize: '1.15rem' }}>⚙️</span>
+                <span>Admin</span>
               </button>
             )}
-            <ThemeToggle />
-            
-            <div className="auth-panel">
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>{username}</span>
-              <button
-                onClick={() => {
-                  localStorage.removeItem('username');
-                  router.push('/login');
-                }}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid var(--danger)',
-                  color: 'var(--danger)',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontSize: '0.7rem',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.background = 'var(--danger)';
-                  e.target.style.color = '#fff';
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.background = 'transparent';
-                  e.target.style.color = 'var(--danger)';
-                }}
-              >
-                LOGOUT
-              </button>
-            </div>
           </div>
-        </header>
 
-        <div style={pageStyles.tabs}>
-          <button
-            style={{
-              ...pageStyles.tabButton,
-              ...(currentTab === 'dashboard' && pageStyles.tabButtonActive),
-            }}
-            onClick={() => setCurrentTab('dashboard')}
-          >
-            Dashboard
-          </button>
-          <button
-            style={{
-              ...pageStyles.tabButton,
-              ...(currentTab === 'insights' && pageStyles.tabButtonActive),
-            }}
-            onClick={() => setCurrentTab('insights')}
-          >
-            Insights
-          </button>
-          <button
-            style={{
-              ...pageStyles.tabButton,
-              ...(currentTab === 'floorplan' && pageStyles.tabButtonActive),
-            }}
-            onClick={() => setCurrentTab('floorplan')}
-          >
-            Floor Plan
-          </button>
-          <button
-            style={{
-              ...pageStyles.tabButton,
-              ...(currentTab === 'history' && pageStyles.tabButtonActive),
-            }}
-            onClick={() => setCurrentTab('history')}
-          >
-            History
-          </button>
-          <button
-            style={{
-              ...pageStyles.tabButton,
-              ...(currentTab === 'logs' && pageStyles.tabButtonActive),
-            }}
-            onClick={() => setCurrentTab('logs')}
-          >
-            Logs
-          </button>
-          <button
-            style={{
-              ...pageStyles.tabButton,
-              ...(currentTab === 'intelligence' && pageStyles.tabButtonActive),
-            }}
-            onClick={() => setCurrentTab('intelligence')}
-          >
-            Intelligence
-          </button>
-          {userRole === 'admin' && (
+          <div className="sidebar-footer">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+              <div className="sidebar-user-info">
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--foreground)' }}>{username}</span>
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>{userRole}</span>
+              </div>
+              
+              {(userRole === 'admin' || canOperate) && (
+                <button
+                  onClick={toggleLock}
+                  title={isLocked ? "System Locked" : "System Unlocked"}
+                  style={{
+                    background: isLocked ? 'var(--danger)' : 'var(--success)',
+                    border: 'none',
+                    borderRadius: '6px',
+                    width: '28px',
+                    height: '28px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: isLocked ? '0 0 8px var(--danger)' : '0 0 8px var(--success)',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <span style={{ fontSize: '0.85rem' }}>{isLocked ? '🔒' : '🔓'}</span>
+                </button>
+              )}
+            </div>
+
             <button
-              style={{
-                ...pageStyles.tabButton,
-                ...(currentTab === 'admin' && pageStyles.tabButtonActive),
+              onClick={() => {
+                localStorage.removeItem('username');
+                router.push('/login');
               }}
-              onClick={() => setCurrentTab('admin')}
+              style={{
+                background: 'rgba(255, 45, 85, 0.08)',
+                border: '1px solid var(--danger)',
+                color: 'var(--danger)',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                width: '100%',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'var(--danger)';
+                e.currentTarget.style.color = '#fff';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 45, 85, 0.08)';
+                e.currentTarget.style.color = 'var(--danger)';
+              }}
             >
-              Admin
+              <span>🚪</span> LOGOUT
             </button>
-          )}
-        </div>
+          </div>
+        </aside>
+
+        {/* Right Main Content Area */}
+        <div className="main-viewport">
+          <header className="viewport-header">
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ 
+                ...pageStyles.statusBadge, 
+                padding: '4px 10px', 
+                margin: 0,
+                fontSize: '0.7rem',
+                backgroundColor: isConnected ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255, 45, 85, 0.1)',
+                color: isConnected ? 'var(--success)' : 'var(--danger)',
+                border: `1px solid ${isConnected ? 'var(--success)' : 'var(--danger)'}`
+              }}>
+                BROKER: {isConnected ? 'READY' : 'ERROR'}
+              </div>
+              
+              <div style={{ 
+                ...pageStyles.statusBadge, 
+                padding: '4px 10px', 
+                margin: 0,
+                fontSize: '0.7rem',
+                backgroundColor: espStatus === 'ONLINE' ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255, 45, 85, 0.1)',
+                color: espStatus === 'ONLINE' ? 'var(--success)' : 'var(--danger)',
+                border: `1px solid ${espStatus === 'ONLINE' ? 'var(--success)' : 'var(--danger)'}`
+              }}>
+                ESP32: {espStatus} {wifiSignal && `(${wifiSignal}dBm)`}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <DateTimeCard />
+              <ThemeToggle />
+            </div>
+          </header>
+
+          <div className="viewport-content">
 
         {currentTab === 'dashboard' && (
           <main style={{ padding: '16px', maxWidth: '1600px', margin: '0 auto' }}>
@@ -1794,7 +1805,9 @@ export default function Dashboard() {
         {currentTab === 'admin' && userRole === 'admin' && (
           <AdminPanel addNotification={addNotification} />
         )}
-      </div>
+          </div> {/* Closing viewport-content */}
+        </div> {/* Closing main-viewport */}
+      </div> {/* Closing dashboard-layout */}
 
       {/* Notifications Panel */}
       
