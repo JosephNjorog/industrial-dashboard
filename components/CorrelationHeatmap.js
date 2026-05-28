@@ -90,7 +90,8 @@ export default function CorrelationHeatmap({ machineHistory }) {
                   width: cellSize, minWidth: cellSize, height: cellSize,
                   color: 'var(--text-muted)', fontWeight: 700,
                   writingMode: 'vertical-rl', textOrientation: 'mixed',
-                  padding: '4px 0', textAlign: 'left', verticalAlign: 'bottom'
+                  padding: '4px 0', textAlign: 'left', verticalAlign: 'bottom',
+                  fontFamily: 'var(--font-mono), monospace'
                 }}>
                   {p.label}
                 </th>
@@ -102,7 +103,8 @@ export default function CorrelationHeatmap({ machineHistory }) {
               <tr key={ri}>
                 <td style={{
                   color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.65rem',
-                  paddingRight: '8px', whiteSpace: 'nowrap', textAlign: 'right'
+                  paddingRight: '8px', whiteSpace: 'nowrap', textAlign: 'right',
+                  fontFamily: 'var(--font-mono), monospace'
                 }}>
                   {pairs[ri].label}
                 </td>
@@ -116,7 +118,8 @@ export default function CorrelationHeatmap({ machineHistory }) {
                     fontWeight: 900,
                     cursor: 'default',
                     transition: 'background 0.2s',
-                    title: `${pairs[ri].label} vs ${pairs[ci].label}: r=${r}`
+                    title: `${pairs[ri].label} vs ${pairs[ci].label}: r=${r}`,
+                    fontFamily: 'var(--font-mono), monospace'
                   }}>
                     {ri === ci ? '—' : r.toFixed(2)}
                   </td>

@@ -1254,7 +1254,7 @@ export default function Dashboard() {
               }}>
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Active Machines</span>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                  <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent)' }}>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-mono), monospace' }}>
                     {Object.values(machineStats).filter(m => m.state === 'ON').length}
                   </span>
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>/ {machineNames.length}</span>
@@ -1272,7 +1272,7 @@ export default function Dashboard() {
               }}>
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Factory Energy Usage</span>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                  <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--warning)' }}>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--warning)', fontFamily: 'var(--font-mono), monospace' }}>
                     {Object.values(machineStats).reduce((sum, m) => sum + (m.energy || 0), 0).toFixed(2)}
                   </span>
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>kWh</span>
@@ -1292,7 +1292,7 @@ export default function Dashboard() {
               }}>
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Factory Uptime</span>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                  <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--success)' }}>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--success)', fontFamily: 'var(--font-mono), monospace' }}>
                     {((Object.values(machineStats).filter(m => m.state === 'ON').length / machineNames.length) * 100).toFixed(0)}
                   </span>
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>%</span>

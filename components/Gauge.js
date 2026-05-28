@@ -87,7 +87,7 @@ export default function Gauge({
               style={{ 
                 fontSize: '22px', 
                 fontWeight: 900, 
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: 'var(--font-mono), monospace',
                 textShadow: `0 0 15px ${color}`
               }}
             >
@@ -101,7 +101,7 @@ export default function Gauge({
               style={{ 
                 fontSize: '11px', 
                 fontWeight: 800, 
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: 'var(--font-sans), sans-serif',
                 opacity: 0.7
               }}
             >

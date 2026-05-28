@@ -67,7 +67,7 @@ export default function DateTimeCard() {
         <div style={{ 
           fontSize: '1.2rem', 
           color: 'var(--accent)', 
-          fontFamily: '"JetBrains Mono", "Roboto Mono", monospace',
+          fontFamily: 'var(--font-mono), monospace',
           fontWeight: 700,
           letterSpacing: '-0.02em',
           lineHeight: 1

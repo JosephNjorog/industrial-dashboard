@@ -1,12 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
 :root {
+  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
   --background: #020408;
   --surface: #0a0d14;
   --surface-soft: #111622;
   --foreground: #f4f7fa;
   --text-muted: #8a9bb2;
-  --border: rgba(0, 240, 255, 0.22); /* Translucent cyan border */
+  --border: rgba(0, 240, 255, 0.15); /* Sleeker translucent cyan border */
   --accent: #00f0ff;
-  --accent-glow: rgba(0, 240, 255, 0.5);
+  --accent-glow: rgba(0, 240, 255, 0.25);
   --danger: #ff0055;
   --success: #00ff88;
   --warning: #ffcc00;
@@ -14,7 +18,7 @@
   --card-gradient: linear-gradient(160deg, rgba(16,21,32,0.95) 0%, rgba(5,8,12,0.95) 100%);
   --insight-card: #0d121c;
   --insight-item: #151b29;
-  --card-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  --card-shadow: 0 8px 24px rgba(0,0,0,0.45);
   --instrument-bg: rgba(0,0,0,0.5);
   --instrument-shadow: inset 0 4px 20px rgba(0,0,0,0.8);
 }
@@ -69,7 +73,7 @@ body {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
@@ -87,6 +91,10 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+input[type="number"] {
+  font-family: var(--font-mono), monospace !important;
 }
 
 a {
@@ -232,10 +240,10 @@ a {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Bolder & Glowing Card Borders Overrides
+   Clean Cards with Subtle Glow & Hover Animations (SCADA/IoT Inspired)
    ───────────────────────────────────────────────────────────────────────────── */
 
-/* Enforce a bold (2px) border for all card/panel containers and components */
+/* Enforce a clean, professional border width for all card/panel containers and components */
 .glass-panel,
 .auth-panel,
 [style*="border: 1px"],
@@ -248,43 +256,44 @@ a {
 [style*="border-left:1px"],
 [style*="border-right: 1px"],
 [style*="border-right:1px"] {
-  border-width: 2px !important;
-  transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), 
-              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border-width: 1.2px !important;
+  transition: border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 /* ─── Nominal / Cyber Cyan Glow (Dark Mode) ─── */
 .glass-panel,
 [style*="border"][style*="var(--border)"],
 [style*="border"][style*="rgba(0, 240, 255"] {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55),
-              0 0 15px rgba(0, 240, 255, 0.03),
-              inset 0 0 0 1px rgba(255, 255, 255, 0.01) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45),
+              0 0 10px rgba(0, 240, 255, 0.02) !important;
 }
 
 .glass-panel:hover,
 [style*="border"][style*="var(--border)"]:hover,
 [style*="border"][style*="rgba(0, 240, 255"]:hover {
-  border-color: rgba(0, 240, 255, 0.5) !important;
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.65),
-              0 0 25px rgba(0, 240, 255, 0.15),
-              inset 0 0 0 1px rgba(255, 255, 255, 0.03) !important;
+  border-color: rgba(0, 240, 255, 0.45) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55),
+              0 0 16px rgba(0, 240, 255, 0.08) !important;
+  transform: translateY(-2px);
 }
 
 /* ─── Nominal / Light Blue Glow (Light Mode) ─── */
 body.light-theme .glass-panel,
 body.light-theme [style*="border"][style*="var(--border)"],
 body.light-theme [style*="border"][style*="rgba(0, 180, 216"] {
-  box-shadow: 0 6px 20px rgba(31, 38, 135, 0.04),
-              0 0 10px rgba(0, 180, 216, 0.02) !important;
+  box-shadow: 0 4px 16px rgba(31, 38, 135, 0.03),
+              0 0 8px rgba(0, 180, 216, 0.01) !important;
 }
 
 body.light-theme .glass-panel:hover,
 body.light-theme [style*="border"][style*="var(--border)"]:hover,
 body.light-theme [style*="border"][style*="rgba(0, 180, 216"]:hover {
-  border-color: rgba(0, 180, 216, 0.55) !important;
-  box-shadow: 0 10px 28px rgba(31, 38, 135, 0.07),
-              0 0 18px rgba(0, 180, 216, 0.12) !important;
+  border-color: rgba(0, 180, 216, 0.45) !important;
+  box-shadow: 0 8px 24px rgba(31, 38, 135, 0.06),
+              0 0 12px rgba(0, 180, 216, 0.07) !important;
+  transform: translateY(-2px);
 }
 
 /* ─── Critical / Danger Red Glow ─── */
@@ -292,19 +301,18 @@ body.light-theme [style*="border"][style*="rgba(0, 180, 216"]:hover {
 [style*="border"][style*="rgb(255, 0, 85)"],
 [style*="border"][style*="rgba(255, 0, 85)"],
 [style*="border"][style*="rgba(255,0,85"] {
-  box-shadow: 0 8px 24px rgba(255, 0, 85, 0.04),
-              0 0 12px rgba(255, 0, 85, 0.03),
-              inset 0 0 0 1px rgba(255, 255, 255, 0.01) !important;
+  box-shadow: 0 6px 20px rgba(255, 0, 85, 0.02),
+              0 0 8px rgba(255, 0, 85, 0.01) !important;
 }
 
 [style*="border"][style*="var(--danger)"]:hover,
 [style*="border"][style*="rgb(255, 0, 85)"]:hover,
 [style*="border"][style*="rgba(255, 0, 85)"]:hover,
 [style*="border"][style*="rgba(255,0,85"]:hover {
-  border-color: rgba(255, 0, 85, 0.7) !important;
-  box-shadow: 0 12px 35px rgba(255, 0, 85, 0.12),
-              0 0 22px rgba(255, 0, 85, 0.2),
-              inset 0 0 0 1px rgba(255, 255, 255, 0.03) !important;
+  border-color: rgba(255, 0, 85, 0.5) !important;
+  box-shadow: 0 10px 28px rgba(255, 0, 85, 0.08),
+              0 0 16px rgba(255, 0, 85, 0.12) !important;
+  transform: translateY(-2px);
 }
 
 /* ─── Warning Yellow Glow ─── */
@@ -312,19 +320,18 @@ body.light-theme [style*="border"][style*="rgba(0, 180, 216"]:hover {
 [style*="border"][style*="rgb(255, 204, 0)"],
 [style*="border"][style*="rgba(255, 204, 0)"],
 [style*="border"][style*="rgba(255,204,0"] {
-  box-shadow: 0 8px 24px rgba(255, 204, 0, 0.03),
-              0 0 12px rgba(255, 204, 0, 0.02),
-              inset 0 0 0 1px rgba(255, 255, 255, 0.01) !important;
+  box-shadow: 0 6px 20px rgba(255, 204, 0, 0.02),
+              0 0 8px rgba(255, 204, 0, 0.01) !important;
 }
 
 [style*="border"][style*="var(--warning)"]:hover,
 [style*="border"][style*="rgb(255, 204, 0)"]:hover,
 [style*="border"][style*="rgba(255, 204, 0)"]:hover,
 [style*="border"][style*="rgba(255,204,0"]:hover {
-  border-color: rgba(255, 204, 0, 0.7) !important;
-  box-shadow: 0 12px 35px rgba(255, 204, 0, 0.1),
-              0 0 22px rgba(255, 204, 0, 0.18),
-              inset 0 0 0 1px rgba(255, 255, 255, 0.03) !important;
+  border-color: rgba(255, 204, 0, 0.5) !important;
+  box-shadow: 0 10px 28px rgba(255, 204, 0, 0.06),
+              0 0 16px rgba(255, 204, 0, 0.1) !important;
+  transform: translateY(-2px);
 }
 
 /* ─── Nominal Active / Success Green Glow ─── */
@@ -332,19 +339,18 @@ body.light-theme [style*="border"][style*="rgba(0, 180, 216"]:hover {
 [style*="border"][style*="rgb(0, 255, 136)"],
 [style*="border"][style*="rgba(0, 255, 136)"],
 [style*="border"][style*="rgba(0,255,136"] {
-  box-shadow: 0 8px 24px rgba(0, 255, 136, 0.03),
-              0 0 12px rgba(0, 255, 136, 0.02),
-              inset 0 0 0 1px rgba(255, 255, 255, 0.01) !important;
+  box-shadow: 0 6px 20px rgba(0, 255, 136, 0.02),
+              0 0 8px rgba(0, 255, 136, 0.01) !important;
 }
 
 [style*="border"][style*="var(--success)"]:hover,
 [style*="border"][style*="rgb(0, 255, 136)"]:hover,
 [style*="border"][style*="rgba(0, 255, 136)"]:hover,
 [style*="border"][style*="rgba(0,255,136"]:hover {
-  border-color: rgba(0, 255, 136, 0.7) !important;
-  box-shadow: 0 12px 35px rgba(0, 255, 136, 0.1),
-              0 0 22px rgba(0, 255, 136, 0.18),
-              inset 0 0 0 1px rgba(255, 255, 255, 0.03) !important;
+  border-color: rgba(0, 255, 136, 0.5) !important;
+  box-shadow: 0 10px 28px rgba(0, 255, 136, 0.06),
+              0 0 16px rgba(0, 255, 136, 0.1) !important;
+  transform: translateY(-2px);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

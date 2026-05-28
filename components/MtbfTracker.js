@@ -78,7 +78,7 @@ export default function MtbfTracker() {
                 {mtbf ? (
                   <>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--accent)', lineHeight: 1 }}>
+                      <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--accent)', lineHeight: 1, fontFamily: 'var(--font-mono), monospace' }}>
                         {mtbf.mtbfHours < 24
                           ? `${mtbf.mtbfHours}h`
                           : `${(mtbf.mtbfHours / 24).toFixed(1)}d`}
@@ -89,8 +89,8 @@ export default function MtbfTracker() {
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>{logCount} service events</span>
-                      <span style={{ color: trendColor(mtbf.trend), fontWeight: 700 }}>
+                      <span style={{ color: 'var(--text-muted)' }}><span style={{ fontFamily: 'var(--font-mono), monospace', fontWeight: 'bold' }}>{logCount}</span> service events</span>
+                      <span style={{ color: trendColor(mtbf.trend), fontWeight: 700, fontFamily: 'var(--font-mono), monospace' }}>
                         {trendIcon(mtbf.trend)} {Math.abs(mtbf.trend)}%
                       </span>
                     </div>

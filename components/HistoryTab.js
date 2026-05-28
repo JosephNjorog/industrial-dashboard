@@ -88,7 +88,7 @@ const styles = {
   timeLabel: {
     fontSize: '0.7rem',
     color: 'var(--text-muted)',
-    fontFamily: 'monospace',
+    fontFamily: 'var(--font-mono), monospace',
     minWidth: '70px',
   },
   entryContent: {
@@ -241,13 +241,13 @@ export default function HistoryTab({ logs = [], insights = [] }) {
               </div>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '8px', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ background: 'var(--badge-bg)', padding: '8px', borderRadius: '8px', textAlign: 'center', border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>STARTS</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--success)' }}>{s.starts}</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--success)', fontFamily: 'var(--font-mono), monospace' }}>{s.starts}</div>
                 </div>
-                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '8px', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ background: 'var(--badge-bg)', padding: '8px', borderRadius: '8px', textAlign: 'center', border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>FAULTS</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: s.faults > 0 ? 'var(--danger)' : 'var(--text-muted)' }}>{s.faults}</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: s.faults > 0 ? 'var(--danger)' : 'var(--text-muted)', fontFamily: 'var(--font-mono), monospace' }}>{s.faults}</div>
                 </div>
               </div>
 

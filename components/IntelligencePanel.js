@@ -77,7 +77,7 @@ export default function IntelligencePanel({ machineStats }) {
                   background: 'rgba(0,0,0,0.2)', padding: '14px', borderRadius: '10px',
                   border: '1px solid var(--border)', textAlign: 'center'
                 }}>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 900, color: kpi.color, lineHeight: 1 }}>{kpi.value}</div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 900, color: kpi.color, lineHeight: 1, fontFamily: 'var(--font-mono), monospace' }}>{kpi.value}</div>
                   <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px', textTransform: 'uppercase' }}>{kpi.label}</div>
                 </div>
               ))}
@@ -96,12 +96,12 @@ export default function IntelligencePanel({ machineStats }) {
                     <span style={{ fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase' }}>{MACHINE_TITLES[m.machine]}</span>
                   </div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span>{m.eventCount} events</span>
+                    <span><span style={{ fontFamily: 'var(--font-mono), monospace', fontWeight: 'bold' }}>{m.eventCount}</span> events</span>
                     <span style={{ color: m.alarmCount > 0 ? 'var(--danger)' : 'var(--text-muted)' }}>
-                      {m.alarmCount} alarm{m.alarmCount !== 1 ? 's' : ''}
+                      <span style={{ fontFamily: 'var(--font-mono), monospace', fontWeight: 'bold' }}>{m.alarmCount}</span> alarm{m.alarmCount !== 1 ? 's' : ''}
                     </span>
                     <span style={{ color: m.maintenanceCount > 0 ? 'var(--warning)' : 'var(--text-muted)' }}>
-                      {m.maintenanceCount} maintenance
+                      <span style={{ fontFamily: 'var(--font-mono), monospace', fontWeight: 'bold' }}>{m.maintenanceCount}</span> maintenance
                     </span>
                   </div>
                 </div>
@@ -152,10 +152,10 @@ export default function IntelligencePanel({ machineStats }) {
               <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: '6px 0 2px', textTransform: 'uppercase' }}>
                 {MACHINE_TITLES[machine]}
               </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--warning)', lineHeight: 1 }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--warning)', lineHeight: 1, fontFamily: 'var(--font-mono), monospace' }}>
                 {formatKES(costPerHour)}/hr
               </div>
-              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px', fontFamily: 'var(--font-mono), monospace' }}>
                 {powerW.toFixed(0)} W draw
               </div>
             </div>
@@ -172,7 +172,7 @@ export default function IntelligencePanel({ machineStats }) {
               background: 'rgba(0,0,0,0.15)', padding: '12px', borderRadius: '10px',
               border: '1px solid var(--border)', textAlign: 'center'
             }}>
-              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: item.color }}>{item.value}</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: item.color, fontFamily: 'var(--font-mono), monospace' }}>{item.value}</div>
               <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px', textTransform: 'uppercase' }}>{item.label}</div>
             </div>
           ))}
@@ -200,7 +200,7 @@ export default function IntelligencePanel({ machineStats }) {
               border: '1px solid var(--border)', textAlign: 'center'
             }}>
               <div style={{ fontSize: '1.5rem', marginBottom: '4px' }}>{item.icon}</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: item.color }}>{item.value}</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: item.color, fontFamily: 'var(--font-mono), monospace' }}>{item.value}</div>
               <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px', textTransform: 'uppercase' }}>{item.label}</div>
             </div>
           ))}

@@ -230,7 +230,7 @@ export default function AdminPanel({ addNotification, username }) {
     <div style={{ padding: '24px', background: 'var(--surface-soft)', borderRadius: '12px', maxWidth: '800px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2 style={{ margin: 0, color: 'var(--accent)' }}>Operator Access Management</h2>
-        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>
+        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 'bold', fontFamily: 'var(--font-mono), monospace' }}>
           {users.length} / 5 USERS
         </span>
       </div>

@@ -41,7 +41,7 @@ const CustomTooltip = ({ active, payload, label }) => {
         backdropFilter: 'blur(4px)'
       }}>
         <p style={{ color: 'var(--text-muted)', margin: '0 0 8px 0', fontSize: '0.75rem', fontWeight: 600 }}>{label}</p>
-        <p style={{ color: payload[0].stroke, margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>
+        <p style={{ color: payload[0].stroke, margin: 0, fontSize: '1.1rem', fontWeight: 800, fontFamily: 'var(--font-mono), monospace' }}>
           {payload[0].value.toFixed(2)}
         </p>
       </div>
@@ -70,8 +70,8 @@ export default function Chart({ data = [], dataKey, label, color }) {
               </linearGradient>
             </defs>
             <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="time" stroke="var(--text-muted)" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-            <YAxis stroke="var(--text-muted)" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+            <XAxis dataKey="time" stroke="var(--text-muted)" tick={{ fontSize: 10, fontFamily: 'var(--font-mono), monospace' }} tickLine={false} axisLine={false} />
+            <YAxis stroke="var(--text-muted)" tick={{ fontSize: 10, fontFamily: 'var(--font-mono), monospace' }} tickLine={false} axisLine={false} />
             <Tooltip content={<CustomTooltip />} />
             <Area
               type="monotone"

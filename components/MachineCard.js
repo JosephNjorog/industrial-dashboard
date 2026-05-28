@@ -48,7 +48,7 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
       <div style={{ marginTop: '2px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.55rem', fontWeight: 800, marginBottom: '2px' }}>
           <span style={{ color: 'var(--text-muted)' }}>HEALTH STATUS</span>
-          <span style={{ color: stats.health > 80 ? 'var(--success)' : stats.health > 50 ? 'var(--warning)' : 'var(--danger)' }}>
+          <span style={{ color: stats.health > 80 ? 'var(--success)' : stats.health > 50 ? 'var(--warning)' : 'var(--danger)', fontFamily: 'var(--font-mono), monospace' }}>
             {stats.health.toFixed(0)}%
           </span>
         </div>
@@ -177,7 +177,7 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
           minHeight: '80px'
         }}>
           <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ISO 10816</span>
-          <span style={{ fontSize: '0.9rem', fontWeight: 900, color: iso.color, textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+          <span style={{ fontSize: '0.9rem', fontWeight: 900, color: iso.color, textShadow: '0 2px 4px rgba(0,0,0,0.2)', fontFamily: 'var(--font-mono), monospace' }}>
             {iso.status}
           </span>
         </div>
@@ -192,7 +192,7 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
           minHeight: '80px'
         }}>
           <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>EST. FAILURE</span>
-          <span style={{ fontSize: '1rem', fontWeight: 900, color: stats.ttfHours < 100 ? 'var(--danger)' : 'var(--success)', textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+          <span style={{ fontSize: '1rem', fontWeight: 900, color: stats.ttfHours < 100 ? 'var(--danger)' : 'var(--success)', textShadow: '0 2px 4px rgba(0,0,0,0.2)', fontFamily: 'var(--font-mono), monospace' }}>
             {stats.ttfHours > 900 ? 'STABLE' : `IN ${stats.ttfHours.toFixed(0)}h`}
           </span>
         </div>
@@ -207,8 +207,8 @@ export default function MachineCard({ machine, title, stats, history = [], onCon
           minHeight: '80px'
         }}>
           <span style={{ fontSize: '0.65rem', color: 'var(--success)', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ENERGY</span>
-          <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--foreground)', textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
-            {stats.energy.toFixed(2)}<span style={{ fontSize: '0.7rem', opacity: 0.7, marginLeft: '2px' }}>kWh</span>
+          <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--foreground)', textShadow: '0 2px 4px rgba(0,0,0,0.2)', fontFamily: 'var(--font-mono), monospace' }}>
+            {stats.energy.toFixed(2)}<span style={{ fontSize: '0.7rem', opacity: 0.7, marginLeft: '2px', fontFamily: 'var(--font-sans), sans-serif' }}>kWh</span>
           </span>
         </div>
       </div>
