@@ -647,6 +647,12 @@ export default function Dashboard() {
     const handleDisconnect = () => {
       setIsConnected(false);
       setBrokerMessage('Reconnecting to MQTT broker...');
+      setEspStatus('OFFLINE');
+      setWifiSignal(null);
+      if (telemetryTimeoutRef.current) {
+        clearTimeout(telemetryTimeoutRef.current);
+        telemetryTimeoutRef.current = null;
+      }
     };
 
     const handleMessage = (topic, payload) => {
@@ -775,8 +781,7 @@ export default function Dashboard() {
         return;
       }
 
-      // 🛡️ Auto-Online Detection: If we get any data, the ESP must be ONLINE
-      setEspStatus('ONLINE');
+      // 🛡️ Auto-Online Detection: Decoupled telemetry data from online checking to prevent data grouping from affecting status
 
       try {
         // payload is already parsed by lib/mqtt.js, but handle string fallback just in case
