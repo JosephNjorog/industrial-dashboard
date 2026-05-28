@@ -375,7 +375,7 @@ export default function Dashboard() {
       // Suppress duplicates; escalate on 3rd occurrence
       if (existing.count === 3) {
         const escalatedMsg = `🔁 [x${existing.count}] Repeated: ${message}`;
-        const notification = { id, message: escalatedMsg, type: 'error', timestamp };
+        const notification = { id, message: escalatedMsg, type, timestamp };
         setNotifications(prev => [notification, ...prev].slice(0, 100));
         fetch('/api/logs', {
           method: 'POST',
