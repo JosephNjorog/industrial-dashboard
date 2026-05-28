@@ -558,3 +558,46 @@ body.light-theme .sidebar-menu-btn.active {
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Light Mode Color Inconsistencies Fixes
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Fix glass-panel background in light theme to use a translucent white glass color */
+body.light-theme .glass-panel {
+  background: rgba(255, 255, 255, 0.72) !important;
+  border-color: var(--border) !important;
+}
+
+/* Swap hardcoded dark backgrounds inside sub-cards, forms, and lists in light mode */
+body.light-theme [style*="background: rgba(0,0,0,0.2)"],
+body.light-theme [style*="background:rgba(0,0,0,0.2)"],
+body.light-theme [style*="background: rgba(0,0,0,0.15)"],
+body.light-theme [style*="background:rgba(0,0,0,0.15)"],
+body.light-theme [style*="background: rgba(0, 0, 0, 0.2)"],
+body.light-theme [style*="background: rgba(0, 0, 0, 0.15)"],
+body.light-theme [style*="background:rgba(0, 0, 0, 0.2)"],
+body.light-theme [style*="background:rgba(0, 0, 0, 0.15)"] {
+  background: var(--surface-soft) !important;
+  color: var(--foreground) !important;
+}
+
+/* Fix heatmap and table cell border colors in light mode */
+body.light-theme [style*="rgba(255,255,255,0.05)"],
+body.light-theme [style*="rgba(255, 255, 255, 0.05)"] {
+  border-color: var(--border) !important;
+}
+
+/* Handle heatmap Pearson correlation matrix neutral diagonal border/glow in light mode */
+body.light-theme [style*="rgba(76,231,255,0.3)"] {
+  border-color: var(--accent) !important;
+}
+
+/* Also handle other hardcoded dark values in modal or panels for light mode */
+body.light-theme [style*="background: rgba(255, 45, 85, 0.05)"] {
+  background: rgba(239, 68, 68, 0.08) !important;
+}
+body.light-theme [style*="background: rgba(0, 255, 136, 0.06)"],
+body.light-theme [style*="background: rgba(0,255,136,0.06)"] {
+  background: rgba(16, 185, 129, 0.08) !important;
+  color: #065f46 !important;
+}
