@@ -1192,6 +1192,16 @@ export default function Dashboard() {
               <span style={{ fontSize: '1.15rem' }}>🧠</span>
               <span>Intelligence</span>
             </button>
+            <a
+              href="/app-debug.apk"
+              download="MachineGuard.apk"
+              className="sidebar-menu-btn"
+              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}
+              title={isSidebarCollapsed ? "Download App" : ""}
+            >
+              <span style={{ fontSize: '1.15rem' }}>📱</span>
+              <span>Download App</span>
+            </a>
             {userRole === 'admin' && (
               <button
                 className={`sidebar-menu-btn ${currentTab === 'admin' ? 'active' : ''}`}
@@ -1298,6 +1308,27 @@ export default function Dashboard() {
               }}>
                 ESP32: {espStatus} {wifiSignal && `(${wifiSignal}dBm)`}
               </div>
+              <a
+                href="/app-debug.apk"
+                download="MachineGuard.apk"
+                style={{ 
+                  ...pageStyles.statusBadge, 
+                  padding: '4px 10px', 
+                  margin: 0,
+                  fontSize: '0.7rem',
+                  backgroundColor: 'rgba(0, 240, 255, 0.1)',
+                  color: 'var(--accent)',
+                  border: '1px solid var(--accent)',
+                  textDecoration: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                title="Download Android Companion App"
+              >
+                <span>📱</span> DOWNLOAD APP
+              </a>
             </div>
 
             <div className="header-controls">
