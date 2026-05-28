@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 export default function Gauge({ 
   value = 0, 
@@ -13,13 +13,70 @@ export default function Gauge({
   const strokeWidth = 8;
   const circumference = 2 * Math.PI * radius;
   
-  // Normalize value between min and max
-  const normalizedValue = Math.min(Math.max(value, min), max);
-  const percentage = (normalizedValue - min) / (max - min);
-  const strokeDashoffset = circumference - (percentage * circumference);
+  const circleRef = useRef(null);
+  const textRef = useRef(null);
+  const prevValueRef = useRef(min);
 
   // Shorten label if it's "MAINT. CYCLE"
   const displayLabel = label === 'MAINT. CYCLE' ? 'MAINT.' : label;
+
+  useEffect(() => {
+    const startValue = prevValueRef.current;
+    const endValue = value;
+    
+    // Ensure value is normalized
+    const normalizedEnd = Math.min(Math.max(endValue, min), max);
+    const normalizedStart = Math.min(Math.max(startValue, min), max);
+
+    if (normalizedStart === normalizedEnd && circleRef.current && textRef.current) {
+      // Just set them directly if no change
+      const pct = (normalizedEnd - min) / (max - min);
+      const offset = circumference - (pct * circumference);
+      circleRef.current.setAttribute('stroke-dashoffset', offset);
+      textRef.current.textContent = normalizedEnd;
+      return;
+    }
+
+    let startTimestamp = null;
+    const duration = 1200; // 1.2s smooth spin up / transition
+    let animationFrameId;
+
+    const step = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      
+      // Easing: cubicOut for smooth deceleration
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+      
+      const currentVal = Math.round(normalizedStart + easedProgress * (normalizedEnd - normalizedStart));
+      const currentPct = (normalizedStart + easedProgress * (normalizedEnd - normalizedStart) - min) / (max - min);
+      const currentOffset = circumference - (currentPct * circumference);
+
+      if (circleRef.current) {
+        circleRef.current.setAttribute('stroke-dashoffset', currentOffset);
+      }
+      if (textRef.current) {
+        textRef.current.textContent = currentVal;
+      }
+      prevValueRef.current = currentVal;
+
+      if (progress < 1) {
+        animationFrameId = window.requestAnimationFrame(step);
+      }
+    };
+
+    animationFrameId = window.requestAnimationFrame(step);
+    return () => {
+      if (animationFrameId) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [value, min, max, circumference]);
+
+  // Initial calculation for static server-side rendering
+  const normalizedValue = Math.min(Math.max(value, min), max);
+  const percentage = (normalizedValue - min) / (max - min);
+  const strokeDashoffset = circumference - (percentage * circumference);
 
   return (
     <div style={{ 
@@ -65,6 +122,7 @@ export default function Gauge({
 
           {/* Value Track */}
           <circle
+            ref={circleRef}
             cx="50" cy="50" r={radius}
             fill="none"
             stroke={color}
@@ -73,12 +131,13 @@ export default function Gauge({
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
             filter={`url(#glow-${displayLabel.replace(/\s+/g, '-')})`}
-            style={{ transition: 'stroke-dashoffset 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), stroke 0.3s ease' }}
+            style={{ transition: 'stroke 0.3s ease' }}
           />
 
-          {/* Text needs to be rotated back to normal */}
+          {/* Text rotated back to normal */}
           <g transform="rotate(90 50 50)">
             <text 
+              ref={textRef}
               x="50" 
               y="48" 
               textAnchor="middle" 
@@ -91,7 +150,7 @@ export default function Gauge({
                 textShadow: `0 0 15px ${color}`
               }}
             >
-              {value}
+              {normalizedValue}
             </text>
             <text 
               x="50" 
