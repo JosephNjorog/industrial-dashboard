@@ -394,6 +394,8 @@ body.light-theme .dashboard-layout {
   box-shadow: 6px 0 20px rgba(0, 0, 0, 0.4);
   z-index: 100;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 body.light-theme .sidebar {
