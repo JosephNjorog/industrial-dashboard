@@ -203,3 +203,176 @@ export const calculateThermalRateOfRise = (tempHistory) => {
   const rate = (tLast - tFirst) / timeDeltaMinutes;
   return Number(rate.toFixed(2)); // °C / minute
 };
+
+// ─── INTELLIGENCE ENGINE ─────────────────────────────────────────────────────
+
+/**
+ * FEATURE 1: Remaining Useful Life (RUL) Estimator
+ * Uses linear regression on vibration slope + runtime to predict hours-to-failure.
+ * Returns: { rulHours, confidence, trendSlope }
+ */
+export const calculateRUL = (machine, history) => {
+  if (!history || history.length < 3) {
+    return { rulHours: 999, confidence: 'LOW', trendSlope: 0 };
+  }
+  const vibHistory = history.filter(h => h.vibration != null).map(h => h.vibration);
+  if (vibHistory.length < 3) return { rulHours: 999, confidence: 'LOW', trendSlope: 0 };
+
+  // Simple linear regression on last 10 vibration readings
+  const n = Math.min(vibHistory.length, 10);
+  const slice = vibHistory.slice(-n);
+  const xMean = (n - 1) / 2;
+  const yMean = slice.reduce((s, v) => s + v, 0) / n;
+  let num = 0, den = 0;
+  slice.forEach((y, x) => { num += (x - xMean) * (y - yMean); den += (x - xMean) ** 2; });
+  const slope = den === 0 ? 0 : num / den; // vibration increase per tick
+
+  // Thresholds per machine (critical vibration level)
+  const criticalVib = { pump: 5, motor: 8, fan: 3 }[machine] || 5;
+  const currentVib = slice[slice.length - 1];
+  const remaining = criticalVib - currentVib;
+
+  if (slope <= 0 || remaining <= 0) {
+    const rulHours = remaining <= 0 ? 0 : 9999;
+    return { rulHours: Math.min(rulHours, 9999), confidence: remaining <= 0 ? 'CRITICAL' : 'HIGH', trendSlope: slope };
+  }
+
+  // Ticks to reach critical vibration × 2 sec per tick → hours
+  const ticksRemaining = remaining / slope;
+  const rulHours = Number(((ticksRemaining * 2) / 3600).toFixed(1));
+
+  const confidence = history.length >= 10 ? 'HIGH' : history.length >= 5 ? 'MEDIUM' : 'LOW';
+  return { rulHours: Math.min(rulHours, 9999), confidence, trendSlope: Number(slope.toFixed(4)) };
+};
+
+/**
+ * FEATURE 2: Anomaly Baseline Learning
+ * Maintains an EMA (exponential moving average) baseline per machine in localStorage.
+ * Call on every new data point to keep baseline updated.
+ */
+const EMA_ALPHA = 0.05; // slow-learning — one week warmup at 2s interval
+
+export const updateAnomalyBaseline = (machine, stats) => {
+  if (typeof window === 'undefined') return;
+  const key = `anomaly_baseline_${machine}`;
+  const stored = localStorage.getItem(key);
+  let baseline = stored ? JSON.parse(stored) : null;
+
+  if (!baseline) {
+    baseline = { temp: stats.temp, vibration: stats.vibration ?? 0, current: stats.current, count: 1 };
+  } else {
+    baseline.temp = EMA_ALPHA * stats.temp + (1 - EMA_ALPHA) * baseline.temp;
+    baseline.vibration = EMA_ALPHA * (stats.vibration ?? 0) + (1 - EMA_ALPHA) * baseline.vibration;
+    baseline.current = EMA_ALPHA * stats.current + (1 - EMA_ALPHA) * baseline.current;
+    baseline.count = (baseline.count || 0) + 1;
+  }
+  localStorage.setItem(key, JSON.stringify(baseline));
+  return baseline;
+};
+
+export const getAnomalyBaseline = (machine) => {
+  if (typeof window === 'undefined') return null;
+  const stored = localStorage.getItem(`anomaly_baseline_${machine}`);
+  return stored ? JSON.parse(stored) : null;
+};
+
+/**
+ * Detect how many sigma away current reading is from baseline.
+ * Returns { tempDev, vibDev, currentDev, isAnomaly }
+ */
+export const detectAnomalyDeviation = (machine, stats) => {
+  const baseline = getAnomalyBaseline(machine);
+  if (!baseline || baseline.count < 50) return { tempDev: 0, vibDev: 0, currentDev: 0, isAnomaly: false, warming: true };
+
+  const tempDev = baseline.temp > 0 ? Math.abs(stats.temp - baseline.temp) / baseline.temp : 0;
+  const vibDev = baseline.vibration > 0 ? Math.abs((stats.vibration ?? 0) - baseline.vibration) / baseline.vibration : 0;
+  const currentDev = baseline.current > 0 ? Math.abs(stats.current - baseline.current) / baseline.current : 0;
+  const isAnomaly = tempDev > 0.25 || vibDev > 0.5 || currentDev > 0.35;
+
+  return {
+    tempDev: Number((tempDev * 100).toFixed(1)),
+    vibDev: Number((vibDev * 100).toFixed(1)),
+    currentDev: Number((currentDev * 100).toFixed(1)),
+    isAnomaly,
+    warming: false,
+    sampleCount: baseline.count
+  };
+};
+
+/**
+ * FEATURE 3: Failure Pattern Recognition
+ * Returns a named diagnosis based on combined sensor signals.
+ * Patterns: BEARING_FAILURE | LUBRICATION_ISSUE | CAVITATION | OVERLOAD | COOLING_FAILURE | NORMAL
+ */
+export const classifyFailurePattern = (stats, prevStats) => {
+  if (!prevStats) return { pattern: 'NORMAL', description: 'Operating normally', severity: 'ok' };
+
+  const vibRising = (stats.vibration ?? 0) > (prevStats.vibration ?? 0) * 1.3;
+  const tempRising = stats.temp > prevStats.temp * 1.15;
+  const currentSurge = stats.current > prevStats.current * 1.25;
+  const rpmDrop = prevStats.rpm > 0 && stats.rpm < prevStats.rpm * 0.85;
+  const powerDrop = prevStats.power > 0 && stats.power < prevStats.power * 0.7;
+  const tempHighVibHigh = (stats.vibration ?? 0) > 2.5 && stats.temp > 55;
+
+  if (vibRising && tempRising && tempHighVibHigh) {
+    return { pattern: 'BEARING_FAILURE', description: 'Simultaneous vibration + thermal rise: likely bearing wear or seizure', severity: 'critical' };
+  }
+  if (tempRising && !vibRising && !currentSurge) {
+    return { pattern: 'LUBRICATION_ISSUE', description: 'Temperature rising without load change: inspect lubrication system', severity: 'warning' };
+  }
+  if (currentSurge && rpmDrop) {
+    return { pattern: 'OVERLOAD', description: 'Current surge with RPM drop: mechanical blockage or conveyor jam', severity: 'critical' };
+  }
+  if (powerDrop && !rpmDrop && stats.state === 'ON') {
+    return { pattern: 'CAVITATION', description: 'Stable RPM with power drop: pump cavitation or belt slippage detected', severity: 'warning' };
+  }
+  if (tempRising && !currentSurge && prevStats.power > 0 && stats.power <= prevStats.power * 1.05) {
+    return { pattern: 'COOLING_FAILURE', description: 'Temperature rising at steady load: blocked airflow or failed cooling', severity: 'warning' };
+  }
+  return { pattern: 'NORMAL', description: 'No abnormal sensor correlations detected', severity: 'ok' };
+};
+
+/**
+ * FEATURE 10: MTBF Calculator
+ * Given an array of maintenance log timestamps, returns MTBF in hours.
+ */
+export const calculateMTBF = (maintenanceLogs) => {
+  if (!maintenanceLogs || maintenanceLogs.length < 2) return null;
+  const sorted = [...maintenanceLogs].sort((a, b) => a.timestamp - b.timestamp);
+  const gaps = [];
+  for (let i = 1; i < sorted.length; i++) {
+    const gapHrs = (sorted[i].timestamp - sorted[i - 1].timestamp) / 3600000;
+    if (gapHrs > 0) gaps.push(gapHrs);
+  }
+  if (gaps.length === 0) return null;
+  const avg = gaps.reduce((s, g) => s + g, 0) / gaps.length;
+  const trend = gaps.length >= 2 ? (gaps[gaps.length - 1] - gaps[0]) / gaps[0] : 0;
+  return { mtbfHours: Number(avg.toFixed(1)), trend: Number((trend * 100).toFixed(1)), gapCount: gaps.length };
+};
+
+/**
+ * FEATURE 5: Cost Per Hour
+ * Returns KES/hour for a machine given its current power draw in watts.
+ * 1 kWh = 30 KES
+ */
+export const calculateCostPerHour = (powerWatts) => {
+  const kwhPerHour = powerWatts / 1000;
+  return Number((kwhPerHour * 30).toFixed(2)); // KES/hr
+};
+
+/**
+ * FEATURE 6: Maintenance ROI
+ * Estimated value of maintenance action vs cost of unplanned failure.
+ * downtime: hours of unplanned downtime avoided (estimate)
+ * laborCostPerHr: KES per hour of production lost
+ */
+export const calculateMaintenanceROI = (maintCostKES = 5000, downtimeHoursAvoided = 8, productionRateKESPerHr = 15000) => {
+  const valueSaved = downtimeHoursAvoided * productionRateKESPerHr;
+  const roi = ((valueSaved - maintCostKES) / maintCostKES) * 100;
+  return {
+    valueSaved,
+    maintCost: maintCostKES,
+    roi: Number(roi.toFixed(1)),
+    netBenefit: valueSaved - maintCostKES
+  };
+};

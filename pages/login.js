@@ -44,7 +44,7 @@ export default function Login() {
         setError(data.error || 'Authentication failed');
         setIsLoading(false);
       }
-    } catch (err) {
+    } catch {
       setError('Network error. Please try again.');
       setIsLoading(false);
     }

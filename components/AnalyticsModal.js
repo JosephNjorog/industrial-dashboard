@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Chart from './Chart';
 import MachineIcon from './MachineIcon';
-import { calculateLoadFactor, calculateVelocityRMS, getISOSeverity, calculateThermalRateOfRise } from '../utils/helpers';
+import {
+  calculateLoadFactor, calculateVelocityRMS, getISOSeverity, calculateThermalRateOfRise,
+  calculateRUL, detectAnomalyDeviation, updateAnomalyBaseline, classifyFailurePattern
+} from '../utils/helpers';
 
 const AnalyticsModal = ({ isOpen, onClose, machine, title, history, logs = [], prefilledAction = '', clearPrefilledAction }) => {
   const [maintenanceLogs, setMaintenanceLogs] = useState([]);
@@ -32,6 +35,7 @@ const AnalyticsModal = ({ isOpen, onClose, machine, title, history, logs = [], p
         clearPrefilledAction();
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, machine, prefilledAction]);
 
   const handleAddMaintenance = async (e) => {
@@ -66,12 +70,26 @@ const AnalyticsModal = ({ isOpen, onClose, machine, title, history, logs = [], p
     setIsSubmitting(false);
   };
 
-  const latestStats = history.length > 0 ? history[history.length - 1] : { temp: 0, current: 0, vibration: 0 };
+  const latestStats = useMemo(() => history.length > 0 ? history[history.length - 1] : { temp: 0, current: 0, vibration: 0 }, [history]);
+  const prevStats   = useMemo(() => history.length > 1 ? history[history.length - 2] : null, [history]);
   const velocityRMS = calculateVelocityRMS(latestStats.vibration, 50);
   const iso = getISOSeverity(velocityRMS);
   const loadFactor = calculateLoadFactor(latestStats.current, machine);
   const tempRateOfRise = calculateThermalRateOfRise(history);
   const crestFactor = latestStats.vibration > 0.8 ? 6.2 : latestStats.vibration > 0.5 ? 4.8 : 3.1;
+
+  // Intelligence Engine
+  const rul = useMemo(() => calculateRUL(machine, history), [machine, history]);
+  const anomaly = useMemo(() => detectAnomalyDeviation(machine, latestStats), [machine, latestStats]);
+  const failurePattern = useMemo(() => classifyFailurePattern(latestStats, prevStats), [latestStats, prevStats]);
+
+  // Update baseline on every modal open
+  useEffect(() => {
+    if (isOpen && machine && latestStats.temp > 0) {
+      updateAnomalyBaseline(machine, latestStats);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, machine]);
 
   const getRCATimeline = () => {
     const timeline = [];
@@ -245,6 +263,87 @@ const AnalyticsModal = ({ isOpen, onClose, machine, title, history, logs = [], p
             <Chart data={history} dataKey="rpm" label="Motor Speed (RPM)" color="#4fc3f7" />
           </div>
           
+          {/* ── Intelligence: RUL + Failure Pattern + Anomaly ── */}
+          <div style={{
+            gridColumn: '1 / -1',
+            background: 'var(--badge-bg)',
+            padding: '20px', borderRadius: '16px', border: '1px solid var(--border)',
+            display: 'flex', flexDirection: 'column', gap: '16px'
+          }}>
+            <h3 style={{ fontSize: '1rem', color: 'var(--accent)', margin: 0, textTransform: 'uppercase' }}>🧠 Predictive Intelligence</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '16px' }}>
+
+              {/* RUL Estimator */}
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase' }}>Remaining Useful Life</div>
+                <div style={{ fontSize: '2rem', fontWeight: 900, lineHeight: 1,
+                  color: rul.rulHours < 10 ? 'var(--danger)' : rul.rulHours < 50 ? 'var(--warning)' : 'var(--success)'
+                }}>
+                  {rul.rulHours >= 9999 ? '∞' : rul.rulHours < 1 ? '<1h' : `${rul.rulHours}h`}
+                </div>
+                <div style={{ marginTop: '6px', display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: 900,
+                  background: rul.confidence === 'HIGH' ? 'rgba(0,255,136,0.1)' : rul.confidence === 'MEDIUM' ? 'rgba(255,200,0,0.1)' : 'rgba(128,128,128,0.1)',
+                  color: rul.confidence === 'HIGH' ? 'var(--success)' : rul.confidence === 'MEDIUM' ? 'var(--warning)' : 'var(--text-muted)',
+                  border: `1px solid ${rul.confidence === 'HIGH' ? 'var(--success)' : rul.confidence === 'MEDIUM' ? 'var(--warning)' : 'var(--border)'}`
+                }}>
+                  {rul.confidence} CONFIDENCE
+                </div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '6px' }}>
+                  Vib slope: {rul.trendSlope > 0 ? '+' : ''}{rul.trendSlope}/tick
+                </div>
+              </div>
+
+              {/* Failure Pattern */}
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '12px',
+                border: `1px solid ${
+                  failurePattern.severity === 'critical' ? 'var(--danger)' :
+                  failurePattern.severity === 'warning'  ? 'var(--warning)' : 'var(--border)'
+                }`, textAlign: 'center' }}>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase' }}>Failure Pattern</div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 900,
+                  color: failurePattern.severity === 'critical' ? 'var(--danger)' :
+                         failurePattern.severity === 'warning'  ? 'var(--warning)' : 'var(--success)'
+                }}>
+                  {failurePattern.pattern.replace(/_/g, ' ')}
+                </div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '8px', lineHeight: 1.4 }}>
+                  {failurePattern.description}
+                </div>
+              </div>
+
+              {/* Anomaly Deviation */}
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '12px',
+                border: `1px solid ${anomaly.isAnomaly ? 'var(--danger)' : 'var(--border)'}`, textAlign: 'center' }}>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase' }}>Anomaly Baseline Deviation</div>
+                {anomaly.warming ? (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                    🌡 Baseline learning…<br />
+                    <span style={{ fontSize: '0.65rem' }}>Need 50 readings. Keep dashboard open.</span>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 900,
+                      color: anomaly.isAnomaly ? 'var(--danger)' : 'var(--success)'
+                    }}>
+                      {anomaly.isAnomaly ? '⚠ ANOMALY' : '✓ NORMAL'}
+                    </div>
+                    <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      {[['Temp', anomaly.tempDev], ['Vibration', anomaly.vibDev], ['Current', anomaly.currentDev]].map(([k, v]) => (
+                        <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>{k}:</span>
+                          <span style={{ color: v > 25 ? 'var(--danger)' : 'var(--success)', fontWeight: 700 }}>+{v}%</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '6px' }}>
+                      Based on {anomaly.sampleCount?.toLocaleString()} samples
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Advanced Engineering Diagnostics Card */}
           <div style={{ 
             gridColumn: '1 / -1', 

@@ -27,6 +27,8 @@ export default function AdminPanel({ addNotification }) {
   const [isResettingDefaults, setIsResettingDefaults] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetConfirmText, setResetConfirmText] = useState('');
+  // Reset anomaly baselines
+  const [isResettingBaselines, setIsResettingBaselines] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -58,6 +60,7 @@ export default function AdminPanel({ addNotification }) {
   };
 
   useEffect(() => { 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUsers(); 
     fetchSettings();
   }, []);
@@ -87,7 +90,7 @@ export default function AdminPanel({ addNotification }) {
         const data = await res.json();
         setSettingsError(data.error || 'Failed to update settings');
       }
-    } catch (err) {
+    } catch {
       setSettingsError('Network error');
     }
     setIsSavingSettings(false);
@@ -106,9 +109,9 @@ export default function AdminPanel({ addNotification }) {
         await fetchUsers();
         setShowResetConfirm(false);
         setResetConfirmText('');
-        // Force re-login since users were wiped
+        // Force re-login — clear only auth keys, preserve nothing else
         setTimeout(() => {
-          localStorage.clear();
+          ['username', 'role', 'canOperate', 'machineHistory', 'machineInsights'].forEach(k => localStorage.removeItem(k));
           window.location.reload();
         }, 1500);
       } else {
@@ -118,6 +121,29 @@ export default function AdminPanel({ addNotification }) {
       addNotification('Network error during reset', 'error');
     }
     setIsResettingDefaults(false);
+  };
+
+  const handleResetBaselines = async () => {
+    if (!confirm('This will delete all learned anomaly baselines for all machines. The system will start relearning from scratch. Continue?')) return;
+    setIsResettingBaselines(true);
+    try {
+      // POST empty baselines to overwrite all machines
+      const res = await fetch('/api/anomaly-baseline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pump: null, motor: null, fan: null })
+      });
+      if (res.ok) {
+        // Also clear localStorage cache
+        ['pump', 'motor', 'fan'].forEach(m => localStorage.removeItem(`anomaly_baseline_${m}`));
+        addNotification('Anomaly baselines cleared — system will relearn from new data', 'success');
+      } else {
+        addNotification('Failed to reset baselines', 'error');
+      }
+    } catch {
+      addNotification('Network error', 'error');
+    }
+    setIsResettingBaselines(false);
   };
 
   const handleAddUser = async (e) => {
@@ -144,7 +170,7 @@ export default function AdminPanel({ addNotification }) {
       } else {
         setError(data.error);
       }
-    } catch (err) {
+    } catch {
       setError('Network error');
     }
     setProcessingAdd(false);
@@ -166,7 +192,7 @@ export default function AdminPanel({ addNotification }) {
       } else {
         addNotification(data.error, 'error');
       }
-    } catch (err) {
+    } catch {
       addNotification('Network error', 'error');
     }
     setProcessingUser(null);
@@ -194,7 +220,7 @@ export default function AdminPanel({ addNotification }) {
       } else {
         addNotification(data.error, 'error');
       }
-    } catch (err) {
+    } catch {
       addNotification('Network error', 'error');
     }
     setProcessingUser(null);
@@ -524,7 +550,31 @@ export default function AdminPanel({ addNotification }) {
             </div>
           </div>
         )}
+
+        {/* Reset Anomaly Baselines */}
+        <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,0,85,0.2)' }}>
+          <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '10px', lineHeight: 1.5 }}>
+            <strong style={{ color: 'var(--foreground)' }}>Reset Anomaly Baselines</strong> — clears learned normal behaviour for all machines.
+            Use this after replacing a machine or major repair. The AI will relearn from scratch.
+          </div>
+          <button
+            onClick={handleResetBaselines}
+            disabled={isResettingBaselines}
+            style={{
+              padding: '8px 18px', borderRadius: '8px',
+              background: 'transparent',
+              border: '1px solid var(--warning)',
+              color: isResettingBaselines ? 'var(--text-muted)' : 'var(--warning)',
+              fontWeight: 700, fontSize: '0.82rem',
+              cursor: isResettingBaselines ? 'wait' : 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            {isResettingBaselines ? 'CLEARING...' : '⚠ RESET ANOMALY BASELINES'}
+          </button>
+        </div>
       </div>
     </div>
   );
 }
+

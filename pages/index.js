@@ -20,9 +20,14 @@ import {
   calculateVelocityRMS,
   getISOSeverity,
   calculateThermalRateOfRise,
+  updateAnomalyBaseline,
+  classifyFailurePattern,
 } from '../utils/helpers';
 import HistoryTab from '../components/HistoryTab';
 import AdminPanel from '../components/AdminPanel';
+import IntelligencePanel from '../components/IntelligencePanel';
+import CorrelationHeatmap from '../components/CorrelationHeatmap';
+import MtbfTracker from '../components/MtbfTracker';
 
 const machineTitles = {
   pump: 'Pump',
@@ -262,6 +267,8 @@ export default function Dashboard() {
   const [settings, setSettings] = useState({ thresholds: {}, maintenanceInterval: 3000 });
   const lastDiagnostics = useRef({}); // Track last sent diagnostic per machine
   const telemetryTimeoutRef = useRef(null); // Timeout to detect offline status
+  const recentAlerts = useRef({}); // Alert suppressor registry
+  const escalationTimers = useRef({}); // Escalation chain timers
 
   const [analyticsMachine, setAnalyticsMachine] = useState(null);
   const [prefilledAction, setPrefilledAction] = useState('');
@@ -358,6 +365,32 @@ export default function Dashboard() {
   const addNotification = useCallback((message, type = 'info') => {
     const id = Date.now() + '-' + Math.random().toString(36).substring(2, 9);
     const timestamp = new Date().toISOString();
+    const msgKey = message.slice(0, 60); // Dedup key
+
+    // Feature 7: Alert Fatigue Suppressor
+    const now = Date.now();
+    const existing = recentAlerts.current[msgKey];
+    if (existing && now - existing.firstTime < 30 * 60 * 1000) {
+      existing.count++;
+      // Suppress duplicates; escalate on 3rd occurrence
+      if (existing.count === 3) {
+        const escalatedMsg = `🔁 [x${existing.count}] Repeated: ${message}`;
+        const notification = { id, message: escalatedMsg, type: 'error', timestamp };
+        setNotifications(prev => [notification, ...prev].slice(0, 100));
+        fetch('/api/logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(notification)
+        }).catch(() => {});
+      }
+      // Silently suppress further dupes
+      return;
+    }
+    // New alert — register it
+    recentAlerts.current[msgKey] = { count: 1, firstTime: now };
+    // Clear registration after 30 minutes
+    setTimeout(() => { delete recentAlerts.current[msgKey]; }, 30 * 60 * 1000);
+
     const notification = { id, message, type, timestamp };
     setNotifications(prev => [notification, ...prev].slice(0, 100)); // Keep last 100 in UI
 
@@ -367,6 +400,34 @@ export default function Dashboard() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(notification)
     }).catch(() => console.error('Failed to save log'));
+
+    // Feature 8: Escalation Chain for critical alerts
+    if (type === 'error' || message.toLowerCase().includes('critical') || message.toLowerCase().includes('emergency')) {
+      const escalationKey = msgKey;
+      // Clear any existing escalation timer for this alert
+      if (escalationTimers.current[escalationKey]) {
+        clearTimeout(escalationTimers.current[escalationKey]);
+      }
+      escalationTimers.current[escalationKey] = setTimeout(async () => {
+        // Log escalation to DB
+        try {
+          const escId = Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+          const escNotification = {
+            id: escId,
+            message: `🚨 ESCALATION: ${message}`,
+            type: 'error',
+            timestamp: new Date().toISOString()
+          };
+          setNotifications(prev => [escNotification, ...prev].slice(0, 100));
+          await fetch('/api/logs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(escNotification)
+          });
+        } catch (_) {}
+        delete escalationTimers.current[escalationKey];
+      }, 2 * 60 * 1000); // 2 minutes
+    }
   }, []);
 
   const addInsight = useCallback((message, machine, severity = 'info') => {
@@ -499,6 +560,50 @@ export default function Dashboard() {
       return () => clearInterval(authInterval);
     }
   }, [router]);
+
+  // ── Anomaly Baseline DB Sync ──
+  useEffect(() => {
+    if (!mounted || typeof window === 'undefined') return;
+    const MACHINES = ['pump', 'motor', 'fan'];
+
+    const loadBaselines = async () => {
+      try {
+        const res = await fetch('/api/anomaly-baseline');
+        if (!res.ok) return;
+        const baselines = await res.json();
+        MACHINES.forEach(m => {
+          if (baselines[m]) {
+            localStorage.setItem(`anomaly_baseline_${m}`, JSON.stringify(baselines[m]));
+          }
+        });
+      } catch (_) {}
+    };
+
+    const syncToDb = async () => {
+      try {
+        const payload = {};
+        MACHINES.forEach(m => {
+          const stored = localStorage.getItem(`anomaly_baseline_${m}`);
+          if (stored) payload[m] = JSON.parse(stored);
+        });
+        if (Object.keys(payload).length === 0) return;
+        await fetch('/api/anomaly-baseline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } catch (_) {}
+    };
+
+    loadBaselines();
+    const syncInterval = setInterval(syncToDb, 5 * 60 * 1000); // sync every 5 min
+    window.addEventListener('beforeunload', syncToDb);
+
+    return () => {
+      clearInterval(syncInterval);
+      window.removeEventListener('beforeunload', syncToDb);
+    };
+  }, [mounted]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -667,8 +772,22 @@ export default function Dashboard() {
         const normalized = normalizeMachineData(parsed);
         const time = new Date().toLocaleTimeString([], { hour12: false });
 
+        // Feature 2: Update anomaly baseline continuously
+        try {
+          updateAnomalyBaseline(machine, normalized);
+        } catch (_) {}
+
         setMachineStats((previousState) => {
           const prevMachine = previousState[machine];
+
+          // Feature 3: Failure pattern recognition — fire alert if a pattern is found
+          try {
+            const fp = classifyFailurePattern(normalized, prevMachine);
+            if (fp.severity !== 'ok') {
+              // Delayed to avoid setState-during-render warning
+              setTimeout(() => addNotification(`${machine.toUpperCase()}: ${fp.pattern.replace(/_/g,' ')} — ${fp.description}`, fp.severity === 'critical' ? 'error' : 'info'), 0);
+            }
+          } catch (_) {}
           // If we are waiting for an ACK, preserve the current state to prevent telemetry flickering
           const finalState = prevMachine.pendingCmdId 
             ? prevMachine.state 
@@ -1064,6 +1183,15 @@ export default function Dashboard() {
             onClick={() => setCurrentTab('logs')}
           >
             Logs
+          </button>
+          <button
+            style={{
+              ...pageStyles.tabButton,
+              ...(currentTab === 'intelligence' && pageStyles.tabButtonActive),
+            }}
+            onClick={() => setCurrentTab('intelligence')}
+          >
+            Intelligence
           </button>
           {userRole === 'admin' && (
             <button
@@ -1652,6 +1780,14 @@ export default function Dashboard() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {currentTab === 'intelligence' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '16px' }}>
+            <IntelligencePanel machineStats={machineStats} />
+            <CorrelationHeatmap machineHistory={machineHistory} />
+            <MtbfTracker />
           </div>
         )}
 

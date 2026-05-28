@@ -253,7 +253,7 @@ export default function HistoryTab({ logs = [], insights = [] }) {
 
               <div style={{ fontSize: '0.7rem', borderTop: '1px solid var(--border)', paddingTop: '8px' }}>
                 <div style={{ color: 'var(--warning)', fontWeight: 800, marginBottom: '2px' }}>LAST DIAGNOSTIC:</div>
-                <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>"{s.recentInsight}"</div>
+                <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>&quot;{s.recentInsight}&quot;</div>
               </div>
             </div>
           ))}
