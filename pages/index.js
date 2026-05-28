@@ -61,6 +61,7 @@ const pageStyles = {
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: '24px',
+    flexWrap: 'wrap',
   },
   titleContent: {
     display: 'flex',
@@ -1064,7 +1065,7 @@ export default function Dashboard() {
                     Smart Factory Monitoring & Control Platform
                   </p>
                 </div>
-                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div className="header-controls" style={{ marginLeft: 'auto', gap: '16px' }}>
                   <DateTimeCard />
                   <ThemeToggle />
                 </div>
@@ -1299,11 +1300,11 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="header-controls">
               <DateTimeCard />
               
               {/* Notification Bell Dropdown */}
-              <div style={{ position: 'relative' }}>
+              <div className="notification-wrapper">
                 <button
                   onClick={() => setIsNotificationPanelOpen(!isNotificationPanelOpen)}
                   style={{

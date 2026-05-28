@@ -805,6 +805,17 @@ body.light-theme .scada-table tbody tr:hover {
 /* ─────────────────────────────────────────────────────────────────────────────
    Notification Panel Dropdown Overlay
    ───────────────────────────────────────────────────────────────────────────── */
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.notification-wrapper {
+  position: relative;
+}
+
 .notification-dropdown {
   position: absolute;
   right: 0;
@@ -819,11 +830,44 @@ body.light-theme .scada-table tbody tr:hover {
               0 0 15px rgba(0, 240, 255, 0.04);
   animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
+  transform: none !important;
+}
+
+.notification-dropdown:hover {
+  transform: none !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5),
+              0 0 15px rgba(0, 240, 255, 0.04) !important;
+  border-color: var(--border) !important;
 }
 
 body.light-theme .notification-dropdown {
   box-shadow: 0 10px 24px rgba(31, 38, 135, 0.08),
               0 0 12px rgba(0, 180, 216, 0.03);
+}
+
+body.light-theme .notification-dropdown:hover {
+  transform: none !important;
+  box-shadow: 0 10px 24px rgba(31, 38, 135, 0.08),
+              0 0 12px rgba(0, 180, 216, 0.03) !important;
+  border-color: var(--border) !important;
+}
+
+@media (max-width: 768px) {
+  .viewport-header {
+    position: relative;
+    z-index: 90;
+  }
+  .notification-wrapper {
+    position: static !important;
+  }
+  .notification-dropdown {
+    right: 16px !important;
+    left: 16px !important;
+    width: auto !important;
+    top: 100% !important;
+    margin-top: 8px !important;
+    max-height: 380px !important;
+  }
 }
 
 .notification-dropdown-header {
