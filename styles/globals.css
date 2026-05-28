@@ -607,3 +607,290 @@ body.light-theme [style*="background: rgba(0,255,136,0.06)"] {
   background: rgba(16, 185, 129, 0.08) !important;
   color: #065f46 !important;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Collapsible Sidebar Overrides (Desktop Only)
+   ───────────────────────────────────────────────────────────────────────────── */
+@media (min-width: 769px) {
+  .sidebar.collapsed {
+    width: 78px !important;
+    padding: 20px 10px !important;
+  }
+
+  .sidebar.collapsed .sidebar-brand {
+    justify-content: center !important;
+    padding-bottom: 12px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .sidebar.collapsed .sidebar-brand div {
+    display: none !important;
+  }
+
+  .sidebar.collapsed .sidebar-menu-btn {
+    padding: 12px !important;
+    justify-content: center !important;
+  }
+
+  .sidebar.collapsed .sidebar-menu-btn span:last-child {
+    display: none !important;
+  }
+
+  .sidebar.collapsed .sidebar-user-info {
+    display: none !important;
+  }
+
+  .sidebar.collapsed .sidebar-footer {
+    padding-top: 12px !important;
+  }
+
+  .sidebar.collapsed .sidebar-footer > div {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Button Consistency (SCADA UI Guidelines)
+   ───────────────────────────────────────────────────────────────────────────── */
+.btn-scada {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  border: 1px solid transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn-scada:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn-scada:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-scada:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Color Variants */
+.btn-scada-primary {
+  background: rgba(0, 240, 255, 0.06);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.btn-scada-primary:hover:not(:disabled) {
+  background: var(--accent);
+  color: #000000;
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
+}
+
+.btn-scada-success {
+  background: rgba(0, 255, 136, 0.06);
+  border-color: var(--success);
+  color: var(--success);
+}
+.btn-scada-success:hover:not(:disabled) {
+  background: var(--success);
+  color: #000000;
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.25);
+}
+
+.btn-scada-danger {
+  background: rgba(255, 0, 85, 0.06);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.btn-scada-danger:hover:not(:disabled) {
+  background: var(--danger);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(255, 0, 85, 0.25);
+}
+
+.btn-scada-warning {
+  background: rgba(255, 204, 0, 0.06);
+  border-color: var(--warning);
+  color: var(--warning);
+}
+.btn-scada-warning:hover:not(:disabled) {
+  background: var(--warning);
+  color: #000000;
+  box-shadow: 0 0 12px rgba(255, 204, 0, 0.25);
+}
+
+.btn-scada-neutral {
+  background: var(--badge-bg);
+  border-color: var(--border);
+  color: var(--foreground);
+}
+.btn-scada-neutral:hover:not(:disabled) {
+  background: var(--border);
+  color: var(--foreground);
+}
+
+/* Light theme overrides for active status text contrasts */
+body.light-theme .btn-scada-primary:hover:not(:disabled),
+body.light-theme .btn-scada-success:hover:not(:disabled),
+body.light-theme .btn-scada-warning:hover:not(:disabled) {
+  color: #ffffff !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Premium SCADA Data Table
+   ───────────────────────────────────────────────────────────────────────────── */
+.scada-table-container {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.scada-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+.scada-table th {
+  background: var(--surface-soft);
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 14px 16px;
+  border-bottom: 1.5px solid var(--border);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.scada-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
+  vertical-align: middle;
+}
+
+.scada-table tbody tr {
+  transition: all 0.15s ease;
+}
+
+.scada-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.015);
+}
+body.light-theme .scada-table tbody tr:nth-child(even) {
+  background: rgba(0, 0, 0, 0.01);
+}
+
+.scada-table tbody tr:hover {
+  background: rgba(0, 240, 255, 0.03) !important;
+}
+body.light-theme .scada-table tbody tr:hover {
+  background: rgba(0, 180, 216, 0.04) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Notification Panel Dropdown Overlay
+   ───────────────────────────────────────────────────────────────────────────── */
+.notification-dropdown {
+  position: absolute;
+  right: 0;
+  top: 48px;
+  width: 340px;
+  max-height: 480px;
+  border-radius: 12px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5),
+              0 0 15px rgba(0, 240, 255, 0.04);
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+body.light-theme .notification-dropdown {
+  box-shadow: 0 10px 24px rgba(31, 38, 135, 0.08),
+              0 0 12px rgba(0, 180, 216, 0.03);
+}
+
+.notification-dropdown-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface-soft);
+}
+
+.notification-dropdown-list {
+  overflow-y: auto;
+  flex: 1;
+  max-height: 340px;
+}
+
+.notification-dropdown-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: background-color 0.2s;
+  cursor: pointer;
+  position: relative;
+}
+
+.notification-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+body.light-theme .notification-dropdown-item:hover {
+  background: rgba(0, 0, 0, 0.015);
+}
+
+.notification-dropdown-item.unread {
+  background: rgba(0, 240, 255, 0.03);
+}
+body.light-theme .notification-dropdown-item.unread {
+  background: rgba(0, 180, 216, 0.03);
+}
+
+.notification-dropdown-item.unread::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.notification-dropdown-footer {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-soft);
+  text-align: center;
+}
+
+/* Input & Select Focus Glow Effects */
+input:focus,
+select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 8px var(--accent-glow) !important;
+  outline: none;
+}
+
+

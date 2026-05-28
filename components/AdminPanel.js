@@ -273,11 +273,9 @@ export default function AdminPanel({ addNotification, username }) {
                   <button 
                     onClick={() => handleGrantControl(u.username)}
                     disabled={processingUser === `grant-${u.username}`}
+                    className="btn-scada btn-scada-primary"
                     style={{
-                      padding: '6px 12px', background: 'transparent', border: '1px solid var(--accent)',
-                      color: processingUser === `grant-${u.username}` ? 'var(--text-muted)' : 'var(--accent)', 
-                      borderRadius: '6px', cursor: processingUser === `grant-${u.username}` ? 'wait' : 'pointer', 
-                      fontSize: '0.8rem', fontWeight: 'bold',
+                      padding: '6px 12px', fontSize: '0.75rem',
                       animation: processingUser === `grant-${u.username}` ? 'pulse 1.5s infinite' : 'none'
                     }}
                   >
@@ -326,10 +324,9 @@ export default function AdminPanel({ addNotification, username }) {
                   <button 
                     type="submit" title="Save Operator"
                     disabled={processingAdd}
+                    className="btn-scada btn-scada-success"
                     style={{
-                      width: '36px', height: '36px', borderRadius: '6px', background: processingAdd ? 'var(--text-muted)' : 'var(--success)',
-                      border: 'none', color: '#000', fontSize: '1.2rem', fontWeight: 'bold', 
-                      cursor: processingAdd ? 'wait' : 'pointer',
+                      width: '36px', height: '36px', padding: 0, fontSize: '1rem',
                       animation: processingAdd ? 'pulse 1.5s infinite' : 'none'
                     }}
                   >
@@ -338,10 +335,8 @@ export default function AdminPanel({ addNotification, username }) {
                   <button 
                     type="button" onClick={() => setIsAdding(false)} title="Cancel"
                     disabled={processingAdd}
-                    style={{
-                      width: '36px', height: '36px', borderRadius: '6px', background: 'var(--badge-bg)',
-                      border: '1px solid var(--border)', color: 'var(--foreground)', fontSize: '1.2rem', cursor: 'pointer'
-                    }}
+                    className="btn-scada btn-scada-neutral"
+                    style={{ width: '36px', height: '36px', padding: 0, fontSize: '0.9rem' }}
                   >
                     ✕
                   </button>
@@ -352,11 +347,10 @@ export default function AdminPanel({ addNotification, username }) {
             users.length < 5 && (
               <button 
                 onClick={() => setIsAdding(true)}
+                className="btn-scada btn-scada-primary"
                 style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                  padding: '16px', background: 'rgba(0, 240, 255, 0.05)', borderRadius: '8px',
-                  border: '1px dashed var(--accent)', color: 'var(--accent)', cursor: 'pointer',
-                  fontWeight: 'bold', fontSize: '1rem', transition: 'all 0.2s'
+                  display: 'flex', width: '100%', padding: '14px',
+                  borderStyle: 'dashed'
                 }}
               >
                 <span style={{ fontSize: '1.4rem' }}>+</span> ADD NEW OPERATOR
@@ -463,16 +457,8 @@ export default function AdminPanel({ addNotification, username }) {
           <div style={{ textAlign: 'right' }}>
             <button 
               type="submit" disabled={isSavingSettings}
-              style={{
-                padding: '12px 24px',
-                borderRadius: '8px',
-                background: isSavingSettings ? 'var(--text-muted)' : 'var(--accent)',
-                color: '#000',
-                fontWeight: 700,
-                border: 'none',
-                cursor: isSavingSettings ? 'wait' : 'pointer',
-                fontSize: '0.9rem'
-              }}
+              className="btn-scada btn-scada-success"
+              style={{ padding: '12px 24px' }}
             >
               {isSavingSettings ? 'SAVING CONFIG...' : 'SAVE CONFIGURATION'}
             </button>
@@ -495,12 +481,7 @@ export default function AdminPanel({ addNotification, username }) {
         {!showResetConfirm ? (
           <button
             onClick={() => setShowResetConfirm(true)}
-            style={{
-              padding: '10px 22px', borderRadius: '8px',
-              background: 'transparent', border: '1px solid var(--danger)',
-              color: 'var(--danger)', fontWeight: 700, fontSize: '0.88rem',
-              cursor: 'pointer', transition: 'all 0.2s'
-            }}
+            className="btn-scada btn-scada-danger"
           >
             RESTORE FACTORY DEFAULTS
           </button>
@@ -526,24 +507,15 @@ export default function AdminPanel({ addNotification, username }) {
               <button
                 onClick={handleRestoreDefaults}
                 disabled={resetConfirmText !== 'RESET' || isResettingDefaults}
-                style={{
-                  flex: 1, padding: '10px', borderRadius: '8px',
-                  background: resetConfirmText === 'RESET' && !isResettingDefaults ? 'var(--danger)' : 'rgba(255,0,85,0.3)',
-                  border: 'none', color: '#fff', fontWeight: 700,
-                  cursor: resetConfirmText === 'RESET' && !isResettingDefaults ? 'pointer' : 'not-allowed',
-                  fontSize: '0.88rem', transition: 'all 0.2s'
-                }}
+                className="btn-scada btn-scada-danger"
+                style={{ flex: 1, background: resetConfirmText === 'RESET' && !isResettingDefaults ? 'var(--danger)' : '' }}
               >
                 {isResettingDefaults ? 'RESETTING...' : 'CONFIRM RESET'}
               </button>
               <button
                 onClick={() => { setShowResetConfirm(false); setResetConfirmText(''); }}
                 disabled={isResettingDefaults}
-                style={{
-                  padding: '10px 18px', borderRadius: '8px',
-                  background: 'var(--badge-bg)', border: '1px solid var(--border)',
-                  color: 'var(--foreground)', cursor: 'pointer', fontSize: '0.88rem'
-                }}
+                className="btn-scada btn-scada-neutral"
               >
                 Cancel
               </button>
@@ -560,15 +532,7 @@ export default function AdminPanel({ addNotification, username }) {
           <button
             onClick={handleResetBaselines}
             disabled={isResettingBaselines}
-            style={{
-              padding: '8px 18px', borderRadius: '8px',
-              background: 'transparent',
-              border: '1px solid var(--warning)',
-              color: isResettingBaselines ? 'var(--text-muted)' : 'var(--warning)',
-              fontWeight: 700, fontSize: '0.82rem',
-              cursor: isResettingBaselines ? 'wait' : 'pointer',
-              transition: 'all 0.2s'
-            }}
+            className="btn-scada btn-scada-warning"
           >
             {isResettingBaselines ? 'CLEARING...' : '⚠ RESET ANOMALY BASELINES'}
           </button>

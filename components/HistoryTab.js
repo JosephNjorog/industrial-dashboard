@@ -147,6 +147,7 @@ const EventBadge = ({ type }) => {
 
 export default function HistoryTab({ logs = [], insights = [] }) {
   const [filter, setFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const filteredLogs = useMemo(() => {
     let base = logs.filter(log => 
@@ -156,9 +157,21 @@ export default function HistoryTab({ logs = [], insights = [] }) {
       log.message.includes('AUTO SHUTDOWN')
     );
 
-    if (filter === 'ALL') return base;
-    return base.filter(log => log.message.toLowerCase().includes(filter.toLowerCase()));
-  }, [logs, filter]);
+    if (filter !== 'ALL') {
+      base = base.filter(log => log.message.toLowerCase().includes(filter.toLowerCase()));
+    }
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      base = base.filter(log => 
+        log.message.toLowerCase().includes(q) || 
+        log.type.toLowerCase().includes(q) ||
+        new Date(log.timestamp).toLocaleTimeString([], { hour12: false }).toLowerCase().includes(q)
+      );
+    }
+
+    return base;
+  }, [logs, filter, searchQuery]);
 
   const stats = useMemo(() => {
     const machines = ['pump', 'motor', 'fan'];
@@ -181,19 +194,37 @@ export default function HistoryTab({ logs = [], insights = [] }) {
     <div style={styles.container}>
       <div style={styles.header}>
         <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--accent)' }}>System Activity & Breakdown</h2>
-        <div style={styles.filterGroup}>
-          {['ALL', 'PUMP', 'MOTOR', 'FAN'].map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              style={{
-                ...styles.filterButton,
-                ...(filter === f && styles.filterButtonActive)
-              }}
-            >
-              {f}
-            </button>
-          ))}
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            placeholder="🔍 Search activity..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '6px',
+              border: '1px solid var(--border)',
+              background: 'var(--badge-bg)',
+              color: 'var(--foreground)',
+              fontSize: '0.75rem',
+              width: '180px',
+              outline: 'none'
+            }}
+          />
+          <div style={styles.filterGroup}>
+            {['ALL', 'PUMP', 'MOTOR', 'FAN'].map(f => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                style={{
+                  ...styles.filterButton,
+                  ...(filter === f && styles.filterButtonActive)
+                }}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

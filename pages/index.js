@@ -274,6 +274,18 @@ export default function Dashboard() {
   const [prefilledAction, setPrefilledAction] = useState('');
   const [wastedKesh, setWastedKesh] = useState(145.2);
 
+  // Visual layout & Notification enhancements
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
+  const [lastReadNotificationTimestamp, setLastReadNotificationTimestamp] = useState('');
+
+  // Logs search & filter states
+  const [logsSearchQuery, setLogsSearchQuery] = useState('');
+  const [logsSeverityFilter, setLogsSeverityFilter] = useState('ALL');
+  const [logsSourceFilter, setLogsSourceFilter] = useState('ALL');
+  const [logsCurrentPage, setLogsCurrentPage] = useState(1);
+  const [logsItemsPerPage, setLogsItemsPerPage] = useState(10);
+
   const getLiveRecommendations = useCallback(() => {
     const recs = [];
     machineNames.forEach(m => {
@@ -444,6 +456,14 @@ export default function Dashboard() {
     }).catch(() => console.error('Failed to save insight'));
   }, []);
 
+  const handleToggleSidebar = useCallback(() => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('isSidebarCollapsed', String(next));
+      return next;
+    });
+  }, []);
+
   const toggleLock = useCallback(() => {
     if (!isLocked) {
       setIsLocked(true);
@@ -528,6 +548,20 @@ export default function Dashboard() {
         if (data.thresholds) setSettings(data);
       })
       .catch(err => console.error('Failed to load settings from DB', err));
+
+    // Load sidebar state and notifications read status
+    const storedCollapse = localStorage.getItem('isSidebarCollapsed');
+    if (storedCollapse) {
+      setIsSidebarCollapsed(storedCollapse === 'true');
+    }
+    const storedLastRead = localStorage.getItem('lastReadNotificationTimestamp');
+    if (storedLastRead) {
+      setLastReadNotificationTimestamp(storedLastRead);
+    } else {
+      const nowString = new Date().toISOString();
+      localStorage.setItem('lastReadNotificationTimestamp', nowString);
+      setLastReadNotificationTimestamp(nowString);
+    }
 
     // Auth guard
     const user = localStorage.getItem('username');
@@ -1065,23 +1099,54 @@ export default function Dashboard() {
 }
   });
 
+  const unreadNotifications = notifications.filter(n => {
+    if (!lastReadNotificationTimestamp) return true;
+    return new Date(n.timestamp) > new Date(lastReadNotificationTimestamp);
+  });
+  const unreadCount = unreadNotifications.length;
+
   return (
     <div className="dashboard-page-wrapper" style={pageStyles.page}>
       <div className="dashboard-layout">
         {/* Left Sidebar Navigation */}
-        <aside className="sidebar">
-          <div className="sidebar-brand">
-            <LogoIcon size={32} color="var(--accent)" />
-            <div>
-              <h1 style={{ ...pageStyles.pageTitle, fontSize: '1.05rem', margin: 0, fontWeight: 800 }}>Command Center</h1>
-              <div style={{ fontSize: '0.58rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>Real-Time SCADA System</div>
+        <aside className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+          <div className="sidebar-brand" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <LogoIcon size={32} color="var(--accent)" />
+              <div>
+                <h1 style={{ ...pageStyles.pageTitle, fontSize: '1.05rem', margin: 0, fontWeight: 800 }}>Command Center</h1>
+                <div style={{ fontSize: '0.58rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>Real-Time SCADA System</div>
+              </div>
             </div>
+            <button 
+              onClick={handleToggleSidebar}
+              className="sidebar-collapse-btn"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                fontSize: '1.1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                transition: 'all 0.2s'
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.color = 'var(--accent)'; }}
+              onMouseOut={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+              title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              {isSidebarCollapsed ? '»' : '«'}
+            </button>
           </div>
 
           <div className="sidebar-menu">
             <button
               className={`sidebar-menu-btn ${currentTab === 'dashboard' ? 'active' : ''}`}
               onClick={() => setCurrentTab('dashboard')}
+              title={isSidebarCollapsed ? "Dashboard" : ""}
             >
               <span style={{ fontSize: '1.15rem' }}>📊</span>
               <span>Dashboard</span>
@@ -1089,6 +1154,7 @@ export default function Dashboard() {
             <button
               className={`sidebar-menu-btn ${currentTab === 'insights' ? 'active' : ''}`}
               onClick={() => setCurrentTab('insights')}
+              title={isSidebarCollapsed ? "Insights" : ""}
             >
               <span style={{ fontSize: '1.15rem' }}>💡</span>
               <span>Insights</span>
@@ -1096,6 +1162,7 @@ export default function Dashboard() {
             <button
               className={`sidebar-menu-btn ${currentTab === 'floorplan' ? 'active' : ''}`}
               onClick={() => setCurrentTab('floorplan')}
+              title={isSidebarCollapsed ? "Floor Plan" : ""}
             >
               <span style={{ fontSize: '1.15rem' }}>🗺️</span>
               <span>Floor Plan</span>
@@ -1103,6 +1170,7 @@ export default function Dashboard() {
             <button
               className={`sidebar-menu-btn ${currentTab === 'history' ? 'active' : ''}`}
               onClick={() => setCurrentTab('history')}
+              title={isSidebarCollapsed ? "History" : ""}
             >
               <span style={{ fontSize: '1.15rem' }}>🕒</span>
               <span>History</span>
@@ -1110,6 +1178,7 @@ export default function Dashboard() {
             <button
               className={`sidebar-menu-btn ${currentTab === 'logs' ? 'active' : ''}`}
               onClick={() => setCurrentTab('logs')}
+              title={isSidebarCollapsed ? "Logs" : ""}
             >
               <span style={{ fontSize: '1.15rem' }}>📃</span>
               <span>Logs</span>
@@ -1117,6 +1186,7 @@ export default function Dashboard() {
             <button
               className={`sidebar-menu-btn ${currentTab === 'intelligence' ? 'active' : ''}`}
               onClick={() => setCurrentTab('intelligence')}
+              title={isSidebarCollapsed ? "Intelligence" : ""}
             >
               <span style={{ fontSize: '1.15rem' }}>🧠</span>
               <span>Intelligence</span>
@@ -1125,6 +1195,7 @@ export default function Dashboard() {
               <button
                 className={`sidebar-menu-btn ${currentTab === 'admin' ? 'active' : ''}`}
                 onClick={() => setCurrentTab('admin')}
+                title={isSidebarCollapsed ? "Admin" : ""}
               >
                 <span style={{ fontSize: '1.15rem' }}>⚙️</span>
                 <span>Admin</span>
@@ -1154,7 +1225,8 @@ export default function Dashboard() {
                     justifyContent: 'center',
                     cursor: 'pointer',
                     boxShadow: isLocked ? '0 0 8px var(--danger)' : '0 0 8px var(--success)',
-                    transition: 'all 0.2s ease'
+                    transition: 'all 0.2s ease',
+                    flexShrink: 0
                   }}
                 >
                   <span style={{ fontSize: '0.85rem' }}>{isLocked ? '🔒' : '🔓'}</span>
@@ -1183,6 +1255,7 @@ export default function Dashboard() {
                 width: '100%',
                 transition: 'all 0.2s ease'
               }}
+              title={isSidebarCollapsed ? "Logout" : ""}
               onMouseOver={(e) => {
                 e.currentTarget.style.background = 'var(--danger)';
                 e.currentTarget.style.color = '#fff';
@@ -1192,7 +1265,7 @@ export default function Dashboard() {
                 e.currentTarget.style.color = 'var(--danger)';
               }}
             >
-              <span>🚪</span> LOGOUT
+              <span>🚪</span> {isSidebarCollapsed ? '' : 'LOGOUT'}
             </button>
           </div>
         </aside>
@@ -1228,6 +1301,147 @@ export default function Dashboard() {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <DateTimeCard />
+              
+              {/* Notification Bell Dropdown */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setIsNotificationPanelOpen(!isNotificationPanelOpen)}
+                  style={{
+                    background: 'var(--badge-bg)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    width: '38px',
+                    height: '38px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'all 0.2s',
+                    flexShrink: 0
+                  }}
+                  onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+                  title="Notifications"
+                >
+                  <span style={{ fontSize: '1.25rem' }}>🔔</span>
+                  {unreadCount > 0 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-4px',
+                      background: 'var(--danger)',
+                      color: '#fff',
+                      fontSize: '0.62rem',
+                      fontWeight: 800,
+                      borderRadius: '50%',
+                      width: '18px',
+                      height: '18px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 0 6px var(--danger)',
+                      fontFamily: 'var(--font-mono), monospace'
+                    }}>
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {isNotificationPanelOpen && (
+                  <div className="glass-panel notification-dropdown">
+                    <div className="notification-dropdown-header">
+                      <span style={{ fontWeight: 800, fontSize: '0.68rem', color: 'var(--accent)', letterSpacing: '0.05em' }}>SYSTEM NOTIFICATIONS</span>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={() => {
+                            const nowStr = new Date().toISOString();
+                            localStorage.setItem('lastReadNotificationTimestamp', nowStr);
+                            setLastReadNotificationTimestamp(nowStr);
+                          }}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--accent)',
+                            fontSize: '0.65rem',
+                            fontWeight: 'bold',
+                            cursor: 'pointer'
+                          }}
+                          onMouseOver={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
+                          onMouseOut={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
+                        >
+                          MARK ALL READ
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="notification-dropdown-list">
+                      {notifications.length === 0 ? (
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', padding: '24px', textAlign: 'center', fontStyle: 'italic' }}>
+                          No notifications yet.
+                        </div>
+                      ) : (
+                        notifications.slice(0, 8).map((n) => {
+                          const isUnread = !lastReadNotificationTimestamp || new Date(n.timestamp) > new Date(lastReadNotificationTimestamp);
+                          return (
+                            <div 
+                              key={n.id} 
+                              className={`notification-dropdown-item ${isUnread ? 'unread' : ''}`}
+                              onClick={() => {
+                                setIsNotificationPanelOpen(false);
+                                setCurrentTab('logs');
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ 
+                                  fontSize: '0.62rem', 
+                                  fontWeight: 800, 
+                                  color: n.type === 'error' ? 'var(--danger)' : n.type === 'control' ? 'var(--accent)' : 'var(--success)',
+                                  textTransform: 'uppercase'
+                                }}>
+                                  {n.type}
+                                </span>
+                                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono), monospace' }}>
+                                  {new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--foreground)', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={n.message}>
+                                {n.message}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    <div className="notification-dropdown-footer">
+                      <button
+                        onClick={() => {
+                          setIsNotificationPanelOpen(false);
+                          setCurrentTab('logs');
+                        }}
+                        style={{
+                          width: '100%',
+                          background: 'rgba(0, 240, 255, 0.08)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px',
+                          color: 'var(--accent)',
+                          padding: '6px',
+                          fontSize: '0.7rem',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = '#000'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(0, 240, 255, 0.08)'; e.currentTarget.style.color = 'var(--accent)'; }}
+                      >
+                        VIEW ALL SYSTEM LOGS
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <ThemeToggle />
             </div>
           </header>
@@ -1755,61 +1969,291 @@ export default function Dashboard() {
           </div>
         )}
 
-        {currentTab === 'logs' && (
-          <div className="glass-panel" style={pageStyles.logPanel}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ ...pageStyles.logTitle, margin: 0 }}>System Activity Logs</h2>
-              <button 
-                onClick={downloadLogsAsCSV}
-                style={{
-                  padding: '8px 16px',
-                  background: 'var(--badge-bg)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '6px',
-                  color: 'var(--accent)',
-                  cursor: 'pointer',
-                  fontSize: '0.8rem',
-                  fontWeight: 600
-                }}
-              >
-                📥 EXPORT CSV
-              </button>
-            </div>
+        {currentTab === 'logs' && (() => {
+          const getLogSource = (message, type) => {
+            const msgLower = message.toLowerCase();
+            if (msgLower.includes('pump')) return 'PUMP';
+            if (msgLower.includes('motor')) return 'MOTOR';
+            if (msgLower.includes('fan')) return 'FAN';
+            if (msgLower.includes('db') || msgLower.includes('database') || msgLower.includes('settings') || msgLower.includes('defaults') || msgLower.includes('thresholds')) return 'DATABASE';
+            if (type === 'system') return 'SYSTEM';
+            return 'CONSOLE';
+          };
+
+          const filteredLogs = notifications.filter(log => {
+            if (logsSearchQuery) {
+              const query = logsSearchQuery.toLowerCase();
+              const messageMatches = log.message.toLowerCase().includes(query);
+              const typeMatches = log.type.toLowerCase().includes(query);
+              const timestampMatches = new Date(log.timestamp).toLocaleString().toLowerCase().includes(query);
+              const sourceMatches = getLogSource(log.message, log.type).toLowerCase().includes(query);
+              if (!messageMatches && !typeMatches && !timestampMatches && !sourceMatches) return false;
+            }
             
-            {notifications.length === 0 ? (
-              <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', padding: '20px', textAlign: 'center' }}>
-                No activity logs recorded yet.
+            if (logsSeverityFilter !== 'ALL') {
+              if (log.type.toUpperCase() !== logsSeverityFilter) return false;
+            }
+
+            if (logsSourceFilter !== 'ALL') {
+              if (getLogSource(log.message, log.type) !== logsSourceFilter) return false;
+            }
+
+            return true;
+          });
+
+          const totalLogs = filteredLogs.length;
+          const totalPages = Math.ceil(totalLogs / logsItemsPerPage) || 1;
+          const currentPage = Math.min(logsCurrentPage, totalPages);
+          const startIndex = (currentPage - 1) * logsItemsPerPage;
+          const paginatedLogs = filteredLogs.slice(startIndex, startIndex + logsItemsPerPage);
+
+          return (
+            <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px', border: '1px solid var(--border)' }}>
+              {/* Header with Title and Export */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                <h2 style={{ ...pageStyles.logTitle, margin: 0, fontSize: '1.2rem' }}>System Activity Database Logs</h2>
+                <button 
+                  onClick={downloadLogsAsCSV}
+                  className="btn-scada btn-scada-neutral"
+                >
+                  📥 EXPORT CSV
+                </button>
               </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {notifications.map((notification, index) => (
-                  <div 
-                    key={`${notification.id}-${index}`} 
+
+              {/* Filters Header Bar */}
+              <div style={{ 
+                display: 'flex', 
+                gap: '12px', 
+                marginBottom: '20px', 
+                flexWrap: 'wrap', 
+                alignItems: 'center',
+                padding: '14px 16px',
+                borderRadius: '8px',
+                background: 'rgba(0,0,0,0.12)',
+                border: '1px solid var(--border)'
+              }}>
+                {/* Search query input */}
+                <input 
+                  type="text" 
+                  placeholder="🔍 Search message, source, or type..." 
+                  value={logsSearchQuery}
+                  onChange={e => { setLogsSearchQuery(e.target.value); setLogsCurrentPage(1); }}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface-soft)',
+                    color: 'var(--foreground)',
+                    fontSize: '0.8rem',
+                    flex: 1,
+                    minWidth: '200px'
+                  }}
+                />
+
+                {/* Severity Dropdown */}
+                <select
+                  value={logsSeverityFilter}
+                  onChange={e => { setLogsSeverityFilter(e.target.value); setLogsCurrentPage(1); }}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface-soft)',
+                    color: 'var(--foreground)',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    minWidth: '150px'
+                  }}
+                >
+                  <option value="ALL">ALL SEVERITIES</option>
+                  <option value="INFO">INFO</option>
+                  <option value="SUCCESS">SUCCESS</option>
+                  <option value="SYSTEM">SYSTEM</option>
+                  <option value="CONTROL">CONTROL</option>
+                  <option value="ERROR">ERROR</option>
+                </select>
+
+                {/* Source Dropdown */}
+                <select
+                  value={logsSourceFilter}
+                  onChange={e => { setLogsSourceFilter(e.target.value); setLogsCurrentPage(1); }}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface-soft)',
+                    color: 'var(--foreground)',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    minWidth: '150px'
+                  }}
+                >
+                  <option value="ALL">ALL SOURCES</option>
+                  <option value="PUMP">PUMP</option>
+                  <option value="MOTOR">MOTOR</option>
+                  <option value="FAN">FAN</option>
+                  <option value="DATABASE">DATABASE</option>
+                  <option value="SYSTEM">SYSTEM</option>
+                  <option value="CONSOLE">CONSOLE</option>
+                </select>
+
+                {/* Reset Filters button */}
+                {(logsSearchQuery || logsSeverityFilter !== 'ALL' || logsSourceFilter !== 'ALL') && (
+                  <button
+                    onClick={() => {
+                      setLogsSearchQuery('');
+                      setLogsSeverityFilter('ALL');
+                      setLogsSourceFilter('ALL');
+                      setLogsCurrentPage(1);
+                    }}
                     style={{
-                      ...pageStyles.logEntry,
-                      padding: '12px',
-                      background: 'var(--badge-bg)',
-                      borderRadius: '6px',
-                      borderLeft: `4px solid ${
-                        notification.type === 'error' ? 'var(--danger)' : 
-                        notification.type === 'system' ? '#7f8fa4' :
-                        notification.type === 'control' ? 'var(--accent)' : 'var(--success)'
-                      }`
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--danger)',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      fontWeight: 'bold'
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', opacity: 0.7, fontSize: '0.75rem' }}>
-                      <span style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
-                        {notification.type}
-                      </span>
-                      <span>{new Date(notification.timestamp).toLocaleString()}</span>
-                    </div>
-                    <div style={pageStyles.logMessage}>{notification.message}</div>
-                  </div>
-                ))}
+                    RESET
+                  </button>
+                )}
               </div>
-            )}
-          </div>
-        )}
+
+              {/* Data Table */}
+              <div className="scada-table-container" style={{ marginBottom: '16px' }}>
+                {paginatedLogs.length === 0 ? (
+                  <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', padding: '40px', textAlign: 'center' }}>
+                    No matching activity logs found.
+                  </div>
+                ) : (
+                  <table className="scada-table">
+                    <thead>
+                      <tr>
+                        <th>Timestamp</th>
+                        <th>Severity</th>
+                        <th>Source</th>
+                        <th>Log Message</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedLogs.map((log) => {
+                        const source = getLogSource(log.message, log.type);
+                        return (
+                          <tr key={log.id}>
+                            <td style={{ fontFamily: 'var(--font-mono), monospace', fontSize: '0.75rem', width: '180px', color: 'var(--text-muted)' }}>
+                              {new Date(log.timestamp).toLocaleString([], { hour12: false })}
+                            </td>
+                            <td style={{ width: '120px' }}>
+                              <span style={{
+                                display: 'inline-block',
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                fontSize: '0.65rem',
+                                fontWeight: 800,
+                                border: '1px solid transparent',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em',
+                                backgroundColor: 
+                                  log.type === 'error' ? 'rgba(255, 45, 85, 0.1)' : 
+                                  log.type === 'system' ? 'rgba(127, 143, 164, 0.1)' :
+                                  log.type === 'control' ? 'rgba(0, 240, 255, 0.1)' : 'rgba(0, 255, 136, 0.1)',
+                                borderColor: 
+                                  log.type === 'error' ? 'var(--danger)' : 
+                                  log.type === 'system' ? '#7f8fa4' :
+                                  log.type === 'control' ? 'var(--accent)' : 'var(--success)',
+                                color: 
+                                  log.type === 'error' ? 'var(--danger)' : 
+                                  log.type === 'system' ? '#a0aec0' :
+                                  log.type === 'control' ? 'var(--accent)' : 'var(--success)',
+                              }}>
+                                {log.type}
+                              </span>
+                            </td>
+                            <td style={{ width: '120px' }}>
+                              <span style={{
+                                display: 'inline-block',
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                fontSize: '0.65rem',
+                                fontWeight: 800,
+                                backgroundColor: 'var(--badge-bg)',
+                                border: '1px solid var(--border)',
+                                color: 'var(--foreground)',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em',
+                                fontFamily: 'var(--font-mono), monospace'
+                              }}>
+                                {source}
+                              </span>
+                            </td>
+                            <td style={{ wordBreak: 'break-word', lineHeight: 1.4 }}>
+                              {log.message}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalLogs > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  {/* Left: Size selector & Counts */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    <span>
+                      Showing <span style={{ fontFamily: 'var(--font-mono), monospace', fontWeight: 'bold', color: 'var(--foreground)' }}>{startIndex + 1}</span> to{' '}
+                      <span style={{ fontFamily: 'var(--font-mono), monospace', fontWeight: 'bold', color: 'var(--foreground)' }}>{Math.min(startIndex + logsItemsPerPage, totalLogs)}</span> of{' '}
+                      <span style={{ fontFamily: 'var(--font-mono), monospace', fontWeight: 'bold', color: 'var(--foreground)' }}>{totalLogs}</span> entries
+                    </span>
+                    <select
+                      value={logsItemsPerPage}
+                      onChange={e => { setLogsItemsPerPage(Number(e.target.value)); setLogsCurrentPage(1); }}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        border: '1px solid var(--border)',
+                        background: 'var(--surface-soft)',
+                        color: 'var(--foreground)',
+                        fontSize: '0.75rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value={10}>Show 10</option>
+                      <option value={25}>Show 25</option>
+                      <option value={50}>Show 50</option>
+                    </select>
+                  </div>
+
+                  {/* Right: Prev/Next buttons */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      onClick={() => setLogsCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="btn-scada btn-scada-neutral"
+                      style={{ padding: '6px 12px', fontSize: '0.7rem' }}
+                    >
+                      ◀ PREV
+                    </button>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono), monospace' }}>
+                      PAGE {currentPage} OF {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setLogsCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="btn-scada btn-scada-neutral"
+                      style={{ padding: '6px 12px', fontSize: '0.7rem' }}
+                    >
+                      NEXT ▶
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {currentTab === 'intelligence' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '16px' }}>
