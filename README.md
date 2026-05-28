@@ -96,3 +96,5 @@ To test with real MQTT data, use an MQTT client to publish to topics like:
 # Example data for pump
 mosquitto_pub -h broker.hivemq.com -t factory/pump/data -m '{"temp": 45.2, "current": 2.1, "vibration": 0.8, "runtime": 1250, "status": "Healthy", "state": "ON"}'
 ```
+
+<!-- Deployment trigger: rollback to stable state -->
